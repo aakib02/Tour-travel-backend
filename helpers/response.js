@@ -1,0 +1,127 @@
+// HTTP Status Codes
+export const HTTP_STATUS_CODES = {
+    OK: 200,
+    CREATED: 201,
+    NO_CONTENT: 204,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    CONFLICT: 409,
+    TOO_MANY_REQUESTS: 429,
+    INTERNAL_SERVER_ERROR: 500,
+};
+
+
+
+export const RESPONSE_MESSAGES = {
+  AUTH: {
+    LOGIN_SUCCESS: "Admin login successful",
+    INVALID_CREDENTIALS: "Invalid email or password",
+    ACCOUNT_INACTIVE: "Admin account is inactive",
+    ACCESS_DENIED: "You are not authorized to access this resource",
+    TOKEN_GENERATED: "Authentication token generated successfully",
+  },
+
+  VALIDATION: {
+    EMAIL_REQUIRED: "Email is required",
+    PASSWORD_REQUIRED: "Password is required",
+    INVALID_EMAIL: "Please provide a valid email address",
+  },
+
+  COMMON: {
+    INTERNAL_SERVER_ERROR: "Something went wrong. Please try again later",
+  },
+    COUNTRY: {
+    CREATED: "Country created successfully",
+    FETCHED: "Countries fetched successfully",
+    FETCHED_SINGLE: "Country fetched successfully",
+    UPDATED: "Country updated successfully",
+    DELETED: "Country deleted successfully",
+    NOT_FOUND: "Country not found",
+    ALREADY_EXISTS: "Country already exists",
+    INVALID_ID: "Invalid country ID",
+  },
+
+  STATE: {
+  CREATED: "State created successfully",
+  FETCHED: "States fetched successfully",
+  FETCHED_SINGLE:"State fetched successfully",
+  UPDATED:"State updated successfully",
+  DELETED:"State deleted successfully",
+  NOT_FOUND: "State not found",
+  ALREADY_EXISTS:"State already exists",
+  INVALID_ID:"Invalid state ID",
+},
+CITY: {
+  CREATED: "City created successfully",
+  FETCHED: "Cities fetched successfully",
+  FETCHED_SINGLE:"City fetched successfully",
+  UPDATED:"City updated successfully",
+  DELETED:"City deleted successfully",
+  NOT_FOUND:"City not found",
+  ALREADY_EXISTS:"City already exists",
+  INVALID_ID: "Invalid city ID",
+},
+ATTRACTION: {
+  CREATED: "Attraction created successfully",
+  FETCHED: "Attractions fetched successfully",
+  FETCHED_SINGLE:"Attraction fetched successfully",
+  UPDATED: "Attraction updated successfully",
+  DELETED:"Attraction deleted successfully",
+  NOT_FOUND:"Attraction not found",
+  ALREADY_EXISTS:"Attraction already exists",
+INVALID_ID:"Invalid attraction ID",
+},
+ACTIVITY: {
+  CREATED: "Activity created successfully",
+  FETCHED: "Activities fetched successfully",
+  FETCHED_SINGLE:"Activity fetched successfully",
+  UPDATED:"Activity updated successfully",
+  DELETED:"Activity deleted successfully",
+  NOT_FOUND:"Activity not found",
+  ALREADY_EXISTS:"Activity already exists",
+  INVALID_ID: "Invalid activity ID",
+},
+VEHICLE: {
+  CREATED:"Vehicle created successfully",
+  FETCHED:"Vehicles fetched successfully",
+  FETCHED_SINGLE:"Vehicle fetched successfully",
+  UPDATED:"Vehicle updated successfully",
+  DELETED:"Vehicle deleted successfully",
+  NOT_FOUND:"Vehicle not found",
+  ALREADY_EXISTS:"Vehicle already exists",
+  INVALID_ID: "Invalid vehicle ID",
+},
+HOTEL: {
+  CREATED:"Hotel created successfully",
+  FETCHED:"Hotels fetched successfully",
+  FETCHED_SINGLE:"Hotel fetched successfully",
+  UPDATED:"Hotel updated successfully",
+  DELETED:"Hotel deleted successfully",
+  NOT_FOUND:"Hotel not found",
+  ALREADY_EXISTS:"Hotel already exists",
+  INVALID_ID: "Invalid hotel ID",
+},
+ENQUIRY: {
+  CREATED:"Enquiry submitted successfully",
+  FETCHED: "Enquiries fetched successfully",
+  FETCHED_SINGLE:"Enquiry fetched successfully",
+  UPDATED:"Enquiry updated successfully",
+  STATUS_UPDATED:"Enquiry status updated successfully",
+  DELETED:"Enquiry deleted successfully",
+  NOT_FOUND:"Enquiry not found",
+  INVALID_ID:"Invalid enquiry ID",
+},
+
+PACKAGE: {
+  CREATED:"Package created successfully",
+  FETCHED:"Packages fetched successfully",
+  FETCHED_SINGLE:"Package fetched successfully",
+  UPDATED:"Package updated successfully",
+  DELETED:"Package deleted successfully",
+  NOT_FOUND:"Package not found",
+  ALREADY_EXISTS:"Package already exists",
+  INVALID_ID:"Invalid package ID",
+},
+};
