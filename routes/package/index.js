@@ -35,6 +35,24 @@ router.get(
   getPackages
 );
 
+router.get(
+  "/get/:id",
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
+  getPackages
+);
+
+router.get(
+  "/:id",
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
+  getPackages
+);
+
 
 // ================================================================
 // UPDATE
@@ -47,6 +65,13 @@ router.put(
   updatePackage
 );
 
+router.put(
+  "/:id",
+  authMiddleware,
+  adminMiddleware,
+  updatePackage
+);
+
 
 // ================================================================
 // DELETE — SOFT DELETE
@@ -54,6 +79,13 @@ router.put(
 
 router.delete(
   "/delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  deletePackage
+);
+
+router.delete(
+  "/:id",
   authMiddleware,
   adminMiddleware,
   deletePackage

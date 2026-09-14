@@ -188,6 +188,23 @@ export const createState = async (req, res) => {
     // CREATE STATE
     // ============================================================
 
+    let normalizedHeroImage = undefined;
+    if (heroImage) {
+      if (typeof heroImage === "object" && heroImage.mediaId) {
+        normalizedHeroImage = {
+          mediaId: heroImage.mediaId,
+          alt: heroImage.alt || normalizedName,
+          title: heroImage.title || normalizedName,
+        };
+      } else if (typeof heroImage === "string" && heroImage.trim()) {
+        normalizedHeroImage = {
+          mediaId: heroImage.trim(),
+          alt: normalizedName,
+          title: normalizedName,
+        };
+      }
+    }
+
     const state =
       await State.create({
         name: normalizedName,
@@ -204,7 +221,7 @@ export const createState = async (req, res) => {
         overview,
         bestTimeToVisit,
 
-        heroImage,
+        heroImage: normalizedHeroImage,
         gallery,
 
         capital,
@@ -856,6 +873,29 @@ export const updateState = async (
           HTTP_STATUS_CODES.NOT_FOUND,
           "Country not found"
         );
+      }
+    }
+
+
+    // ============================================================
+    // HERO IMAGE NORMALIZATION
+    // ============================================================
+
+    if (updateData.heroImage !== undefined) {
+      if (!updateData.heroImage) {
+        updateData.heroImage = null;
+      } else if (typeof updateData.heroImage === "object" && updateData.heroImage.mediaId) {
+        updateData.heroImage = {
+          mediaId: updateData.heroImage.mediaId,
+          alt: updateData.heroImage.alt || "",
+          title: updateData.heroImage.title || "",
+        };
+      } else if (typeof updateData.heroImage === "string" && updateData.heroImage.trim()) {
+        updateData.heroImage = {
+          mediaId: updateData.heroImage.trim(),
+          alt: "",
+          title: "",
+        };
       }
     }
 

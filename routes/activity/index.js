@@ -32,8 +32,6 @@ router.post(
 
 router.get(
   "/get",
-  authMiddleware,
-  adminMiddleware,
   getActivities
 );
 

@@ -75,7 +75,11 @@ export const generateUploadSignature = async (req, res) => {
 
 export const createMedia = async (req, res) => {
   try {
-    const {
+    if (Array.isArray(req.body) || req.body?.items || req.body?.media) {
+      return createMediaBulk(req, res);
+    }
+
+    let {
       name,
       originalName,
       url,
@@ -99,6 +103,39 @@ export const createMedia = async (req, res) => {
       uploadSessionId,
     } = req.body;
 
+    // ----------------------------------------------------------
+    // DIRECT FILE UPLOAD HANDLER (IF req.file IS PRESENT)
+    // ----------------------------------------------------------
+    if (req.file) {
+      originalName = req.file.originalname;
+      name = name || originalName.split(".")[0];
+      alt = alt || req.body.alt || name;
+      mimeType = req.file.mimetype;
+      size = req.file.size;
+
+      // Upload buffer directly to Cloudinary
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: folder || "travel",
+            resource_type: "auto",
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+
+      url = uploadResult.url;
+      secureUrl = uploadResult.secure_url;
+      publicId = uploadResult.public_id;
+      format = uploadResult.format;
+      width = uploadResult.width;
+      height = uploadResult.height;
+      resourceType = uploadResult.resource_type;
+    }
 
     // ----------------------------------------------------------
     // REQUIRED CLOUDINARY DATA
@@ -108,7 +145,7 @@ export const createMedia = async (req, res) => {
       return sendError(
         res,
         HTTP_STATUS_CODES.BAD_REQUEST,
-        "Cloudinary secureUrl and publicId are required"
+        "File or Cloudinary secureUrl and publicId are required"
       );
     }
 
@@ -262,6 +299,90 @@ export const createMedia = async (req, res) => {
       res,
       HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
       RESPONSE_MESSAGES.COMMON.INTERNAL_SERVER_ERROR
+    );
+  }
+};
+
+
+// ============================================================
+// CREATE MEDIA RECORDS IN BULK (SHOPIFY-STYLE STAGED FLOW)
+// ============================================================
+
+export const createMediaBulk = async (req, res) => {
+  try {
+    const rawItems = Array.isArray(req.body)
+      ? req.body
+      : req.body?.items || req.body?.media || [];
+
+    if (!rawItems.length) {
+      return sendError(
+        res,
+        HTTP_STATUS_CODES.BAD_REQUEST,
+        "No media items provided for bulk creation"
+      );
+    }
+
+    const docsToInsert = rawItems
+      .filter((item) => item?.secureUrl && item?.publicId)
+      .map((item) => ({
+        name: item.name || item.originalName || "Untitled Media",
+        originalName: item.originalName || item.name || "media",
+        url: item.url || item.secureUrl,
+        secureUrl: item.secureUrl,
+        publicId: item.publicId,
+        resourceType: item.resourceType || "image",
+        format: item.format || "jpg",
+        mimeType: item.mimeType,
+        folder: item.folder || "travel",
+        size: item.size || item.bytes || 0,
+        width: item.width || 0,
+        height: item.height || 0,
+        duration: item.duration || 0,
+        alt: item.alt || item.name || "Media Asset",
+        title: item.title,
+        caption: item.caption,
+        description: item.description,
+        fileHash: item.fileHash,
+        tags: Array.isArray(item.tags) ? item.tags : [],
+        uploadedBy: req.admin?._id || req.user?.id || null,
+        clientUploadId: item.clientUploadId,
+        uploadSessionId: item.uploadSessionId,
+        isActive: true,
+        deletedAt: null,
+      }));
+
+    if (!docsToInsert.length) {
+      return sendError(
+        res,
+        HTTP_STATUS_CODES.BAD_REQUEST,
+        "Valid items with secureUrl and publicId are required"
+      );
+    }
+
+    const savedMedia = await Media.insertMany(docsToInsert, { ordered: false });
+
+    return sendResponse(
+      res,
+      HTTP_STATUS_CODES.CREATED,
+      `${savedMedia.length} media items created successfully`,
+      savedMedia
+    );
+  } catch (error) {
+    console.error("Create Media Bulk Error:", error);
+
+    if (error.insertedDocs && error.insertedDocs.length > 0) {
+      return sendResponse(
+        res,
+        HTTP_STATUS_CODES.CREATED,
+        `${error.insertedDocs.length} media items created (some duplicates skipped)`,
+        error.insertedDocs
+      );
+    }
+
+    return sendError(
+      res,
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      error.message || RESPONSE_MESSAGES.COMMON.INTERNAL_SERVER_ERROR
     );
   }
 };

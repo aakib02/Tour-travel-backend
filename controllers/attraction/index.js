@@ -14,6 +14,22 @@ import {
   sendError,
 } from "../../helpers/responseHelper.js";
 
+const sanitizeAttractionTicket = (att) => {
+  if (!att) return att;
+  if (att.ticket) {
+    const {
+      indianAdultPrice,
+      indianChildPrice,
+      foreignAdultPrice,
+      foreignChildPrice,
+      currency,
+      ...cleanTicket
+    } = att.ticket;
+    return { ...att, ticket: cleanTicket };
+  }
+  return att;
+};
+
 
 // ================================================================
 // CREATE ATTRACTION
@@ -154,9 +170,11 @@ export const createAttraction = async (req, res) => {
     }
 
 
+    const heroMediaId = heroImage?.mediaId?._id || heroImage?.mediaId || heroImage?._id;
     if (
+      heroMediaId &&
       !mongoose.Types.ObjectId.isValid(
-        heroImage.mediaId
+        heroMediaId
       )
     ) {
       return sendError(
@@ -326,15 +344,18 @@ export const createAttraction = async (req, res) => {
       });
 
 
-    // ============================================================
-    // RESPONSE
-    // ============================================================
+    const populatedAttraction = await Attraction.findById(attraction._id)
+      .populate("stateId", "name slug code region")
+      .populate("cityId", "name slug stateId")
+      .populate("heroImage.mediaId", "url secureUrl title alt originalName mimeType size")
+      .populate("gallery.mediaId", "url secureUrl title alt originalName mimeType size")
+      .lean();
 
     return sendResponse(
       res,
       HTTP_STATUS_CODES.CREATED,
       RESPONSE_MESSAGES.ATTRACTION.CREATED,
-      attraction
+      sanitizeAttractionTicket(populatedAttraction || attraction)
     );
 
   } catch (error) {
@@ -478,10 +499,7 @@ export const getAttractions = async (req, res) => {
 
 
       const attraction =
-        await Attraction.findOne({
-          _id: id,
-          isActive: true,
-        })
+        await Attraction.findById(id)
           .populate(
             "stateId",
             "name slug code region"
@@ -489,6 +507,14 @@ export const getAttractions = async (req, res) => {
           .populate(
             "cityId",
             "name slug stateId"
+          )
+          .populate(
+            "heroImage.mediaId",
+            "url secureUrl title alt originalName mimeType size"
+          )
+          .populate(
+            "gallery.mediaId",
+            "url secureUrl title alt originalName mimeType size"
           )
           .lean();
 
@@ -506,7 +532,7 @@ export const getAttractions = async (req, res) => {
         res,
         HTTP_STATUS_CODES.OK,
         RESPONSE_MESSAGES.ATTRACTION.FETCHED_SINGLE,
-        attraction
+        sanitizeAttractionTicket(attraction)
       );
     }
 
@@ -915,6 +941,15 @@ export const getAttractions = async (req, res) => {
           "cityId",
           "name slug stateId"
         )
+        .populate(
+          "heroImage.mediaId",
+          "url secureUrl title alt originalName mimeType size"
+        )
+        .populate(
+          "gallery.mediaId",
+          "url secureUrl title alt originalName mimeType size"
+        )
+        .select("-ticket.indianAdultPrice -ticket.indianChildPrice -ticket.foreignAdultPrice -ticket.foreignChildPrice -ticket.currency")
         .sort({
           [safeSortBy]:
             safeSortOrder,
@@ -938,7 +973,7 @@ export const getAttractions = async (req, res) => {
       HTTP_STATUS_CODES.OK,
       RESPONSE_MESSAGES.ATTRACTION.FETCHED,
       {
-        attractions,
+        attractions: attractions.map(sanitizeAttractionTicket),
 
         pagination: {
           total,
@@ -1241,31 +1276,28 @@ export const updateAttraction = async (
     // HERO IMAGE VALIDATION
     // ============================================================
 
-    if (
-      updateData.heroImage &&
-      !updateData.heroImage.mediaId
-    ) {
+    if (updateData.heroImage !== undefined) {
+      const heroMediaId =
+        updateData.heroImage?.mediaId?._id ||
+        updateData.heroImage?.mediaId ||
+        updateData.heroImage?._id;
 
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Hero image media ID is required"
-      );
-    }
-
-
-    if (
-      updateData.heroImage?.mediaId &&
-      !mongoose.Types.ObjectId.isValid(
-        updateData.heroImage.mediaId
-      )
-    ) {
-
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Invalid hero image media ID"
-      );
+      if (heroMediaId) {
+        if (!mongoose.Types.ObjectId.isValid(heroMediaId)) {
+          return sendError(
+            res,
+            HTTP_STATUS_CODES.BAD_REQUEST,
+            "Invalid hero image media ID"
+          );
+        }
+        updateData.heroImage = {
+          mediaId: heroMediaId,
+          alt: updateData.heroImage.alt?.trim() || "",
+          title: updateData.heroImage.title?.trim() || "",
+        };
+      } else {
+        delete updateData.heroImage;
+      }
     }
 
 
@@ -1406,6 +1438,14 @@ export const updateAttraction = async (
         .populate(
           "cityId",
           "name slug stateId"
+        )
+        .populate(
+          "heroImage.mediaId",
+          "url secureUrl title alt originalName mimeType size"
+        )
+        .populate(
+          "gallery.mediaId",
+          "url secureUrl title alt originalName mimeType size"
         );
 
 
@@ -1423,7 +1463,7 @@ export const updateAttraction = async (
       res,
       HTTP_STATUS_CODES.OK,
       RESPONSE_MESSAGES.ATTRACTION.UPDATED,
-      updatedAttraction
+      sanitizeAttractionTicket(updatedAttraction?.toObject ? updatedAttraction.toObject() : updatedAttraction)
     );
 
   } catch (error) {

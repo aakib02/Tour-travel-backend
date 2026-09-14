@@ -20,8 +20,6 @@ router.post("/create",authMiddleware,adminMiddleware,createState);
 
 router.get(
   "/get",
-  authMiddleware,
-  adminMiddleware,
   getStates
 );
 

@@ -209,32 +209,6 @@ const attractionSchema = new Schema(
         default: false,
       },
 
-      currency: {
-        type: String,
-        default: "INR",
-        uppercase: true,
-      },
-
-      indianAdultPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      indianChildPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      foreignAdultPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      foreignChildPrice: {
-        type: Number,
-        min: 0,
-      },
-
       onlineBookingAvailable: {
         type: Boolean,
         default: false,
@@ -295,7 +269,7 @@ heroImage: {
   mediaId: {
     type: Schema.Types.ObjectId,
     ref: "Media",
-    required: true,
+    required: false,
   },
 
   alt: {

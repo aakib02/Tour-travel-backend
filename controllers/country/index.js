@@ -24,6 +24,7 @@ export const createCountry = async (req, res) => {
       slug,
       code,
       isoCode,
+      region,
       currency,
       description,
       heroImage,
@@ -92,17 +93,20 @@ export const createCountry = async (req, res) => {
     // CREATE COUNTRY
     // ============================================================
 
-    const country = await Country.create({
-      name: normalizedName,
-      slug: normalizedSlug,
+      const heroImgId = (heroImage && typeof heroImage === 'object') ? (heroImage.mediaId || heroImage._id) : heroImage;
 
-      code,
-      isoCode,
-      currency,
-      description,
+      const country = await Country.create({
+        name: normalizedName,
+        slug: normalizedSlug,
 
-      heroImage,
-      gallery,
+        code,
+        isoCode,
+        region: region || "Other",
+        currency,
+        description,
+
+        heroImage: heroImgId || null,
+        gallery,
 
       seo,
 
@@ -196,7 +200,9 @@ export const getCountries = async (req, res) => {
       const country = await Country.findOne({
         _id: id,
         isActive: true,
-      }).lean();
+      })
+        .populate("heroImage")
+        .lean();
 
 
       if (!country) {
@@ -309,6 +315,7 @@ export const getCountries = async (req, res) => {
     ] = await Promise.all([
 
       Country.find(filter)
+        .populate("heroImage")
         .sort({
           [safeSortBy]: safeSortOrder,
         })
@@ -401,6 +408,7 @@ export const updateCountry = async (req, res) => {
       "slug",
       "code",
       "isoCode",
+      "region",
       "currency",
       "description",
       "heroImage",
@@ -542,6 +550,16 @@ export const updateCountry = async (req, res) => {
     // UPDATE
     // ============================================================
 
+    // Normalize heroImage ID if object is passed
+    if (updateData.heroImage !== undefined) {
+      if (updateData.heroImage && typeof updateData.heroImage === 'object') {
+        updateData.heroImage = updateData.heroImage.mediaId || updateData.heroImage._id || null;
+      }
+      if (!updateData.heroImage || !mongoose.Types.ObjectId.isValid(updateData.heroImage)) {
+        updateData.heroImage = null;
+      }
+    }
+
     const updatedCountry =
       await Country.findOneAndUpdate(
         {
@@ -555,7 +573,9 @@ export const updateCountry = async (req, res) => {
           new: true,
           runValidators: true,
         }
-      ).lean();
+      )
+        .populate("heroImage")
+        .lean();
 
 
     if (!updatedCountry) {

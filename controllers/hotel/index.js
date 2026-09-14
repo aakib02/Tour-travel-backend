@@ -253,8 +253,20 @@ export const createHotel = async (req, res) => {
 
         policies,
 
-        heroImage,
-        gallery,
+        heroImage: (heroImage && heroImage.mediaId) ? heroImage : undefined,
+        gallery: Array.isArray(gallery)
+          ? gallery
+              .map((item, idx) => {
+                const mId = typeof item === 'object' && item !== null ? (item.mediaId?._id || item.mediaId) : item;
+                if (!mId || !mongoose.Types.ObjectId.isValid(mId)) return null;
+                return {
+                  mediaId: mId,
+                  alt: (typeof item === 'object' && item?.alt) || '',
+                  sortOrder: idx,
+                };
+              })
+              .filter(Boolean)
+          : [],
 
         rating,
 
@@ -358,10 +370,9 @@ export const createHotel = async (req, res) => {
 
 export const getHotels = async (req, res) => {
   try {
+    const id = req.params.id || req.query.id;
 
     const {
-      id,
-
       page = 1,
       limit = 10,
 
@@ -421,10 +432,7 @@ export const getHotels = async (req, res) => {
 
 
       const hotel =
-        await Hotel.findOne({
-          _id: id,
-          isActive: true,
-        })
+        await Hotel.findById(id)
           .populate(
             "stateId",
             "name slug code region"
@@ -432,6 +440,12 @@ export const getHotels = async (req, res) => {
           .populate(
             "cityId",
             "name slug stateId"
+          )
+          .populate(
+            "heroImage.mediaId"
+          )
+          .populate(
+            "gallery.mediaId"
           )
           .lean();
 
@@ -1047,6 +1061,12 @@ export const getHotels = async (req, res) => {
           "cityId",
           "name slug stateId"
         )
+        .populate(
+          "heroImage.mediaId"
+        )
+        .populate(
+          "gallery.mediaId"
+        )
         .sort({
           [safeSortBy]:
             safeSortOrder,
@@ -1150,10 +1170,7 @@ export const updateHotel = async (
     // ============================================================
 
     const existingHotel =
-      await Hotel.findOne({
-        _id: id,
-        isActive: true,
-      }).lean();
+      await Hotel.findById(id).lean();
 
 
     if (!existingHotel) {
@@ -1419,12 +1436,7 @@ export const updateHotel = async (
       updateData.heroImage &&
       !updateData.heroImage.mediaId
     ) {
-
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Hero image media ID is required"
-      );
+      delete updateData.heroImage;
     }
 
 
@@ -1440,6 +1452,29 @@ export const updateHotel = async (
         HTTP_STATUS_CODES.BAD_REQUEST,
         "Invalid hero image media ID"
       );
+    }
+
+
+    // ============================================================
+    // GALLERY
+    // ============================================================
+
+    if (updateData.gallery !== undefined) {
+      if (Array.isArray(updateData.gallery)) {
+        updateData.gallery = updateData.gallery
+          .map((item, idx) => {
+            const mId = typeof item === 'object' && item !== null ? (item.mediaId?._id || item.mediaId) : item;
+            if (!mId || !mongoose.Types.ObjectId.isValid(mId)) return null;
+            return {
+              mediaId: mId,
+              alt: (typeof item === 'object' && item?.alt) || '',
+              sortOrder: idx,
+            };
+          })
+          .filter(Boolean);
+      } else {
+        updateData.gallery = [];
+      }
     }
 
 
@@ -1497,18 +1532,14 @@ export const updateHotel = async (
     // ============================================================
 
     const updatedHotel =
-      await Hotel.findOneAndUpdate(
-
+      await Hotel.findByIdAndUpdate(
+        id,
         {
-          _id: id,
-          isActive: true,
+          $set: {
+            ...updateData,
+            isActive: true,
+          },
         },
-
-        {
-          $set:
-            updateData,
-        },
-
         {
           new: true,
           runValidators: true,
@@ -1521,6 +1552,12 @@ export const updateHotel = async (
         .populate(
           "cityId",
           "name slug stateId"
+        )
+        .populate(
+          "heroImage.mediaId"
+        )
+        .populate(
+          "gallery.mediaId"
         );
 
 
@@ -1620,26 +1657,15 @@ export const deleteHotel = async (
 
 
     const hotel =
-      await Hotel.findOneAndUpdate(
-
-        {
-          _id: id,
-          isActive: true,
-        },
-
+      await Hotel.findByIdAndUpdate(
+        id,
         {
           $set: {
-
             isActive: false,
-
-            deletedAt:
-              new Date(),
-
-            updatedBy:
-              req.user.id,
+            deletedAt: new Date(),
+            updatedBy: req.user.id,
           },
         },
-
         {
           new: true,
         }

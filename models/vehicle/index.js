@@ -507,9 +507,9 @@ vehicleSchema.index({
   seatingCapacity: 1,
 });
 
-vehicleSchema.index({
-  fuelType: 1,
-});
+// vehicleSchema.index({
+//   fuelType: 1,
+// });
 
 vehicleSchema.index({
   "rating.average": -1,

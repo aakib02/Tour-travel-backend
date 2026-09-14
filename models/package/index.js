@@ -85,28 +85,8 @@ const packageSchema = new Schema(
     themes: [
       {
         type: String,
-        enum: [
-          "heritage",
-          "culture",
-          "adventure",
-          "wildlife",
-          "spiritual",
-          "pilgrimage",
-          "honeymoon",
-          "family",
-          "luxury",
-          "beach",
-          "hill-station",
-          "desert",
-          "nature",
-          "wellness",
-          "food",
-          "photography",
-          "weekend",
-          "road-trip",
-          "trekking",
-          "other",
-        ],
+        trim: true,
+        lowercase: true,
       },
     ],
 
@@ -126,6 +106,12 @@ const packageSchema = new Schema(
           "central",
           "north-east",
         ],
+      }
+    ],
+    countries: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Country",
       },
     ],
 
@@ -270,6 +256,18 @@ const packageSchema = new Schema(
           {
             type: Schema.Types.ObjectId,
             ref: "Activity",
+          },
+        ],
+
+        hotelName: {
+          type: String,
+          trim: true,
+        },
+
+        mealsList: [
+          {
+            type: String,
+            trim: true,
           },
         ],
 
@@ -420,6 +418,31 @@ const packageSchema = new Schema(
         default: true,
       },
 
+      vehicleType: {
+        type: String,
+        trim: true,
+      },
+
+      vehicleId: {
+        type: Schema.Types.ObjectId,
+        ref: "Vehicle",
+      },
+
+      driverIncluded: {
+        type: Boolean,
+        default: true,
+      },
+
+      allTollsAndTaxesIncluded: {
+        type: Boolean,
+        default: true,
+      },
+
+      mineralWaterBottlesIncluded: {
+        type: Boolean,
+        default: true,
+      },
+
       vehicles: [
         {
           type: Schema.Types.ObjectId,
@@ -546,6 +569,72 @@ const packageSchema = new Schema(
       },
     ],
 
+    // ============================================================
+    // FRONTEND TOUR-TRAVEL COMPATIBILITY
+    // ============================================================
+
+    currency: {
+      type: String,
+      default: "INR",
+      trim: true,
+    },
+
+    destinations: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    overview: {
+      type: String,
+      trim: true,
+    },
+
+    tourType: {
+      type: String,
+      trim: true,
+    },
+
+    season: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    mealsPlan: {
+      type: String,
+      trim: true,
+    },
+
+    mapEmbedUrl: {
+      type: String,
+      trim: true,
+    },
+
+    included: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    excluded: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    hotels: [
+      {
+        city: { type: String, trim: true },
+        name: { type: String, trim: true },
+        category: { type: String, trim: true },
+      },
+    ],
+
 
 
     // ============================================================
@@ -567,69 +656,63 @@ const packageSchema = new Schema(
     },
 
 
-    countries: [
-  {
-    type: Schema.Types.ObjectId,
-    ref: "Country",
-  },
-],
 
 
     // ============================================================
     // IMAGES
     // ============================================================
 
-heroImage: {
-  mediaId: {
-    type: Schema.Types.ObjectId,
-    ref: "Media",
-    required: true,
-  },
+    heroImage: {
+      mediaId: {
+        type: Schema.Types.ObjectId,
+        ref: "Media",
+        required: true,
+      },
 
-  alt: {
-    type: String,
-    trim: true,
-    maxlength: 200,
-  },
+      alt: {
+        type: String,
+        trim: true,
+        maxlength: 200,
+      },
 
-  title: {
-    type: String,
-    trim: true,
-    maxlength: 200,
-  },
-},
-
-// ============================================================
-// GALLERY
-// ============================================================
-
-gallery: [
-  {
-    mediaId: {
-      type: Schema.Types.ObjectId,
-      ref: "Media",
-      required: true,
+      title: {
+        type: String,
+        trim: true,
+        maxlength: 200,
+      },
     },
 
-    alt: {
-      type: String,
-      trim: true,
-      maxlength: 200,
-    },
+    // ============================================================
+    // GALLERY
+    // ============================================================
 
-    title: {
-      type: String,
-      trim: true,
-      maxlength: 200,
-    },
+    gallery: [
+      {
+        mediaId: {
+          type: Schema.Types.ObjectId,
+          ref: "Media",
+          required: true,
+        },
 
-    sortOrder: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-  },
-],
+        alt: {
+          type: String,
+          trim: true,
+          maxlength: 200,
+        },
+
+        title: {
+          type: String,
+          trim: true,
+          maxlength: 200,
+        },
+
+        sortOrder: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+      },
+    ],
 
 
     // ============================================================

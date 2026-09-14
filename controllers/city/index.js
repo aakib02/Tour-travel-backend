@@ -118,12 +118,35 @@ export const createCity = async (req, res) => {
     }
 
 
-    if (!heroImage?.mediaId) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Hero image is required"
-      );
+    let normalizedHeroImage = undefined;
+    if (heroImage) {
+      if (typeof heroImage === "object" && heroImage.mediaId) {
+        if (!mongoose.Types.ObjectId.isValid(heroImage.mediaId)) {
+          return sendError(
+            res,
+            HTTP_STATUS_CODES.BAD_REQUEST,
+            "Invalid hero image media ID"
+          );
+        }
+        normalizedHeroImage = {
+          mediaId: heroImage.mediaId,
+          alt: heroImage.alt || name.trim(),
+          title: heroImage.title || name.trim(),
+        };
+      } else if (typeof heroImage === "string" && heroImage.trim()) {
+        if (!mongoose.Types.ObjectId.isValid(heroImage.trim())) {
+          return sendError(
+            res,
+            HTTP_STATUS_CODES.BAD_REQUEST,
+            "Invalid hero image media ID"
+          );
+        }
+        normalizedHeroImage = {
+          mediaId: heroImage.trim(),
+          alt: name.trim(),
+          title: name.trim(),
+        };
+      }
     }
 
 
@@ -153,17 +176,7 @@ export const createCity = async (req, res) => {
     }
 
 
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        heroImage.mediaId
-      )
-    ) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Invalid hero image media ID"
-      );
-    }
+
 
 
     // ============================================================
@@ -295,7 +308,7 @@ export const createCity = async (req, res) => {
         popularFor,
         travelThemes,
 
-        heroImage,
+        heroImage: normalizedHeroImage,
         gallery,
 
         food,
@@ -1021,32 +1034,45 @@ export const updateCity = async (
 
 
     // ============================================================
-    // HERO IMAGE VALIDATION
+    // HERO IMAGE NORMALIZATION & VALIDATION
     // ============================================================
 
-    if (
-      updateData.heroImage &&
-      !updateData.heroImage.mediaId
-    ) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Hero image media ID is required"
-      );
-    }
-
-
-    if (
-      updateData.heroImage?.mediaId &&
-      !mongoose.Types.ObjectId.isValid(
-        updateData.heroImage.mediaId
-      )
-    ) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Invalid hero image media ID"
-      );
+    if (updateData.heroImage !== undefined) {
+      if (!updateData.heroImage) {
+        updateData.heroImage = null;
+      } else if (typeof updateData.heroImage === "object" && updateData.heroImage.mediaId) {
+        if (!mongoose.Types.ObjectId.isValid(updateData.heroImage.mediaId)) {
+          return sendError(
+            res,
+            HTTP_STATUS_CODES.BAD_REQUEST,
+            "Invalid hero image media ID"
+          );
+        }
+        updateData.heroImage = {
+          mediaId: updateData.heroImage.mediaId,
+          alt: updateData.heroImage.alt || "",
+          title: updateData.heroImage.title || "",
+        };
+      } else if (typeof updateData.heroImage === "string" && updateData.heroImage.trim()) {
+        if (!mongoose.Types.ObjectId.isValid(updateData.heroImage.trim())) {
+          return sendError(
+            res,
+            HTTP_STATUS_CODES.BAD_REQUEST,
+            "Invalid hero image media ID"
+          );
+        }
+        updateData.heroImage = {
+          mediaId: updateData.heroImage.trim(),
+          alt: "",
+          title: "",
+        };
+      } else {
+        return sendError(
+          res,
+          HTTP_STATUS_CODES.BAD_REQUEST,
+          "Invalid hero image format"
+        );
+      }
     }
 
 

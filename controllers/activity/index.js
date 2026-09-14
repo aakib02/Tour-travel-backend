@@ -43,8 +43,6 @@ export const createActivity = async (req, res) => {
 
       duration,
 
-      pricing,
-
       availability,
 
       participants,
@@ -145,24 +143,6 @@ export const createActivity = async (req, res) => {
     }
 
 
-    if (!pricing?.priceFrom && pricing?.priceFrom !== 0) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Activity starting price is required"
-      );
-    }
-
-
-    if (!heroImage?.mediaId) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Hero image is required"
-      );
-    }
-
-
     // ============================================================
     // OBJECT ID VALIDATION
     // ============================================================
@@ -201,9 +181,11 @@ export const createActivity = async (req, res) => {
     }
 
 
+    const heroMediaId = heroImage?.mediaId?._id || heroImage?.mediaId || heroImage?._id;
     if (
+      heroMediaId &&
       !mongoose.Types.ObjectId.isValid(
-        heroImage.mediaId
+        heroMediaId
       )
     ) {
       return sendError(
@@ -387,8 +369,6 @@ export const createActivity = async (req, res) => {
 
         duration,
 
-        pricing,
-
         availability,
 
         participants,
@@ -438,12 +418,19 @@ export const createActivity = async (req, res) => {
           req.user.id,
       });
 
+    const populatedActivity = await Activity.findById(activity._id)
+      .populate("stateId", "name slug code region")
+      .populate("cityId", "name slug stateId")
+      .populate("attractionId", "name slug category")
+      .populate("heroImage.mediaId", "url secureUrl title alt originalName mimeType size")
+      .populate("gallery.mediaId", "url secureUrl title alt originalName mimeType size")
+      .lean();
 
     return sendResponse(
       res,
       HTTP_STATUS_CODES.CREATED,
       RESPONSE_MESSAGES.ACTIVITY.CREATED,
-      activity
+      populatedActivity || activity
     );
 
   } catch (error) {
@@ -530,11 +517,6 @@ export const getActivities = async (req, res) => {
 
       suitableFor,
 
-      minPrice,
-      maxPrice,
-
-      priceType,
-
       minDuration,
       maxDuration,
 
@@ -605,6 +587,15 @@ export const getActivities = async (req, res) => {
             "attractionId",
             "name slug category"
           )
+          .populate(
+            "heroImage.mediaId",
+            "url secureUrl title alt originalName mimeType size"
+          )
+          .populate(
+            "gallery.mediaId",
+            "url secureUrl title alt originalName mimeType size"
+          )
+          .select("-pricing")
           .lean();
 
 
@@ -616,6 +607,10 @@ export const getActivities = async (req, res) => {
         );
       }
 
+
+      if (activity?.pricing) {
+        delete activity.pricing;
+      }
 
       return sendResponse(
         res,
@@ -787,101 +782,6 @@ export const getActivities = async (req, res) => {
     }
 
 
-    // ============================================================
-    // PRICE
-    // ============================================================
-
-    if (
-      minPrice !== undefined ||
-      maxPrice !== undefined
-    ) {
-
-      const priceFilter = {};
-
-
-      if (
-        minPrice !== undefined
-      ) {
-
-        const value =
-          Number(minPrice);
-
-
-        if (
-          Number.isNaN(value) ||
-          value < 0
-        ) {
-          return sendError(
-            res,
-            HTTP_STATUS_CODES.BAD_REQUEST,
-            "Invalid minimum price"
-          );
-        }
-
-
-        priceFilter.$gte =
-          value;
-      }
-
-
-      if (
-        maxPrice !== undefined
-      ) {
-
-        const value =
-          Number(maxPrice);
-
-
-        if (
-          Number.isNaN(value) ||
-          value < 0
-        ) {
-          return sendError(
-            res,
-            HTTP_STATUS_CODES.BAD_REQUEST,
-            "Invalid maximum price"
-          );
-        }
-
-
-        priceFilter.$lte =
-          value;
-      }
-
-
-      if (
-        priceFilter.$gte !==
-          undefined &&
-        priceFilter.$lte !==
-          undefined &&
-        priceFilter.$gte >
-          priceFilter.$lte
-      ) {
-        return sendError(
-          res,
-          HTTP_STATUS_CODES.BAD_REQUEST,
-          "Minimum price cannot be greater than maximum price"
-        );
-      }
-
-
-      filter[
-        "pricing.priceFrom"
-      ] = priceFilter;
-    }
-
-
-    // ============================================================
-    // PRICE TYPE
-    // ============================================================
-
-    if (priceType) {
-
-      filter[
-        "pricing.priceType"
-      ] =
-        priceType;
-    }
 
 
     // ============================================================
@@ -1298,7 +1198,6 @@ export const getActivities = async (req, res) => {
       "createdAt",
       "updatedAt",
       "sortOrder",
-      "pricing.priceFrom",
       "duration.minMinutes",
       "rating.average",
       "rating.count",
@@ -1345,6 +1244,15 @@ export const getActivities = async (req, res) => {
           "attractionId",
           "name slug category"
         )
+        .populate(
+          "heroImage.mediaId",
+          "url secureUrl title alt originalName mimeType size"
+        )
+        .populate(
+          "gallery.mediaId",
+          "url secureUrl title alt originalName mimeType size"
+        )
+        .select("-pricing")
         .sort({
           [safeSortBy]:
             safeSortOrder,
@@ -1363,12 +1271,20 @@ export const getActivities = async (req, res) => {
     // RESPONSE
     // ============================================================
 
+    const sanitizedActivities = activities.map((act) => {
+      if (act?.pricing) {
+        const { pricing, ...rest } = act;
+        return rest;
+      }
+      return act;
+    });
+
     return sendResponse(
       res,
       HTTP_STATUS_CODES.OK,
       RESPONSE_MESSAGES.ACTIVITY.FETCHED,
       {
-        activities,
+        activities: sanitizedActivities,
 
         pagination: {
           total,
@@ -1483,8 +1399,6 @@ export const updateActivity = async (
       "importantInformation",
 
       "duration",
-
-      "pricing",
 
       "availability",
 
@@ -1722,29 +1636,28 @@ export const updateActivity = async (
     // HERO IMAGE
     // ============================================================
 
-    if (
-      updateData.heroImage &&
-      !updateData.heroImage.mediaId
-    ) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Hero image media ID is required"
-      );
-    }
+    if (updateData.heroImage !== undefined) {
+      const heroMediaId =
+        updateData.heroImage?.mediaId?._id ||
+        updateData.heroImage?.mediaId ||
+        updateData.heroImage?._id;
 
-
-    if (
-      updateData.heroImage?.mediaId &&
-      !mongoose.Types.ObjectId.isValid(
-        updateData.heroImage.mediaId
-      )
-    ) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Invalid hero image media ID"
-      );
+      if (heroMediaId) {
+        if (!mongoose.Types.ObjectId.isValid(heroMediaId)) {
+          return sendError(
+            res,
+            HTTP_STATUS_CODES.BAD_REQUEST,
+            "Invalid hero image media ID"
+          );
+        }
+        updateData.heroImage = {
+          mediaId: heroMediaId,
+          alt: updateData.heroImage.alt?.trim() || "",
+          title: updateData.heroImage.title?.trim() || "",
+        };
+      } else {
+        delete updateData.heroImage;
+      }
     }
 
 
@@ -1939,6 +1852,14 @@ export const updateActivity = async (
         .populate(
           "attractionId",
           "name slug category"
+        )
+        .populate(
+          "heroImage.mediaId",
+          "url secureUrl title alt originalName mimeType size"
+        )
+        .populate(
+          "gallery.mediaId",
+          "url secureUrl title alt originalName mimeType size"
         );
 
 

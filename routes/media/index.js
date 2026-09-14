@@ -6,6 +6,7 @@ import adminMiddleware from "../../middleware/adminMiddleware.js";
 import {
   generateUploadSignature,
   createMedia,
+  createMediaBulk,
   getMedia,
   getSingleMedia,
   deleteMedia,
@@ -36,13 +37,35 @@ router.post(
 );
 
 
+import upload from "../../middleware/uploadMiddleware.js";
+
 // ============================================================
-// SAVE CLOUDINARY MEDIA
+// SAVE CLOUDINARY MEDIA (Supports direct file & URL)
 // ============================================================
 
 router.post(
   "/upload",
+  (req, res, next) => {
+    if (req.headers["content-type"]?.includes("multipart/form-data")) {
+      return upload.single("file")(req, res, (err) => {
+        if (err) {
+          return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: err.message || "File upload error",
+          });
+        }
+        next();
+      });
+    }
+    next();
+  },
   createMedia
+);
+
+router.post(
+  "/bulk-save",
+  createMediaBulk
 );
 
 

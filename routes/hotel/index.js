@@ -26,8 +26,16 @@ router.post(
 // GET ALL / SINGLE
 router.get(
   "/get",
-  authMiddleware,
-  adminMiddleware,
+  getHotels
+);
+
+router.get(
+  "/get/:id",
+  getHotels
+);
+
+router.get(
+  "/:id",
   getHotels
 );
 
@@ -40,10 +48,24 @@ router.put(
   updateHotel
 );
 
+router.put(
+  "/:id",
+  authMiddleware,
+  adminMiddleware,
+  updateHotel
+);
+
 
 // DELETE
 router.delete(
   "/delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  deleteHotel
+);
+
+router.delete(
+  "/:id",
   authMiddleware,
   adminMiddleware,
   deleteHotel

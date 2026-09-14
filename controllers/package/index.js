@@ -82,6 +82,17 @@ export const createPackage = async (req, res) => {
       sortOrder,
 
       status,
+
+      currency,
+      destinations,
+      overview,
+      tourType,
+      season,
+      mealsPlan,
+      mapEmbedUrl,
+      included,
+      excluded,
+      hotels,
     } = req.body;
 
 
@@ -365,6 +376,36 @@ export const createPackage = async (req, res) => {
 
       seo,
 
+      currency:
+        currency || "INR",
+
+      destinations:
+        destinations || [],
+
+      overview:
+        overview || description || tagline || "",
+
+      tourType:
+        tourType || packageType || "Private",
+
+      season:
+        season || [],
+
+      mealsPlan:
+        mealsPlan || "",
+
+      mapEmbedUrl:
+        mapEmbedUrl || "",
+
+      included:
+        included || inclusions || [],
+
+      excluded:
+        excluded || exclusions || [],
+
+      hotels:
+        hotels || [],
+
       isFeatured:
         isFeatured ?? false,
 
@@ -590,11 +631,13 @@ export const getPackages = async (
       }
 
 
+      const singleFilter = { _id: id };
+      if (isActive !== "all") {
+        singleFilter.isActive = isActive === "true";
+      }
+
       const packageData =
-        await Package.findOne({
-          _id: id,
-          isActive: true,
-        })
+        await Package.findOne(singleFilter)
           .populate(
             "countries",
             "name slug code"
@@ -650,6 +693,14 @@ export const getPackages = async (
           .populate(
             "transport.vehicles",
             "name slug type seatingCapacity"
+          )
+          .populate(
+            "heroImage.mediaId",
+            "name url secureUrl alt format width height"
+          )
+          .populate(
+            "gallery.mediaId",
+            "name url secureUrl alt format width height"
           )
           .lean();
 
@@ -1732,6 +1783,14 @@ export const getPackages = async (
           "endLocation.cityId",
           "name slug"
         )
+        .populate(
+          "heroImage.mediaId",
+          "name url secureUrl alt format width height"
+        )
+        .populate(
+          "gallery.mediaId",
+          "name url secureUrl alt format width height"
+        )
 
         .sort({
           [safeSortBy]:
@@ -1924,6 +1983,16 @@ export const updatePackage = async (
       "sortOrder",
 
       "status",
+      "currency",
+      "destinations",
+      "overview",
+      "tourType",
+      "season",
+      "mealsPlan",
+      "mapEmbedUrl",
+      "included",
+      "excluded",
+      "hotels",
     ];
 
 
@@ -2144,6 +2213,7 @@ export const updatePackage = async (
         },
 
         {
+          returnDocument: "after",
           new: true,
           runValidators: true,
         }

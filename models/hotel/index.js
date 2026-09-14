@@ -328,19 +328,21 @@ heroImage: {
   mediaId: {
     type: Schema.Types.ObjectId,
     ref: "Media",
-    required: true,
+    default: null,
   },
 
   alt: {
     type: String,
     trim: true,
     maxlength: 200,
+    default: null,
   },
 
   title: {
     type: String,
     trim: true,
     maxlength: 200,
+    default: null,
   },
 },
 

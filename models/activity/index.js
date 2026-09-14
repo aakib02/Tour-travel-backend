@@ -179,74 +179,6 @@ const activitySchema = new Schema(
     },
 
     // ============================================================
-    // PRICING
-    // ============================================================
-
-    pricing: {
-      priceFrom: {
-        type: Number,
-        required: [true, "Activity starting price is required"],
-        min: 0,
-      },
-
-      currency: {
-        type: String,
-        default: "INR",
-        uppercase: true,
-        trim: true,
-      },
-
-      priceType: {
-        type: String,
-        enum: [
-          "per_person",
-          "per_group",
-          "per_hour",
-          "per_vehicle",
-          "per_session",
-          "custom",
-        ],
-        default: "per_person",
-      },
-
-      adultPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      childPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      seniorPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      infantPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      groupPrice: {
-        type: Number,
-        min: 0,
-      },
-
-      includesTaxes: {
-        type: Boolean,
-        default: false,
-      },
-
-      priceNote: {
-        type: String,
-        trim: true,
-        maxlength: 500,
-      },
-    },
-
-    // ============================================================
     // AVAILABILITY
     // ============================================================
 
@@ -444,7 +376,7 @@ heroImage: {
   mediaId: {
     type: Schema.Types.ObjectId,
     ref: "Media",
-    required: true,
+    required: false,
   },
 
   alt: {
@@ -812,9 +744,6 @@ activitySchema.index({
   category: 1,
 });
 
-activitySchema.index({
-  "pricing.priceFrom": 1,
-});
 
 activitySchema.index({
   isPopular: 1,
