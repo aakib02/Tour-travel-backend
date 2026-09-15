@@ -40,7 +40,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:3000",
-  "https://tour-travel-backend-uk0s.onrender.com"
+  "https://tour-travel-backend-uk0s.onrender.com",
+  "https://admin-indiabycaranddriver-eight.vercel.app",
 ];
 
 
@@ -57,7 +58,7 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'enabled', 'X-Custom-Header'],
   credentials: true,
   preflightContinue: false,
@@ -84,7 +85,7 @@ app.use((err, req, res, next) => {
 export const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
   },
 });
@@ -110,18 +111,18 @@ io.on("connection", (socket) => {
 
 
 
-app.use("/api/user/auth",adminAuthRoutes);
-app.use("/api/country",Country);
-app.use("/api/state",State);
-app.use("/api/city",City);
-app.use("/api/attraction",Attraction);
-app.use("/api/activity",Activity);
-app.use("/api/vehicle",Vehicle);
-app.use("/api/hotel",Hotel);
-app.use("/api/enquiry",Enquiry);
-app.use("/api/package",Package);
-app.use("/api/customizePackage",customizePackage);
-app.use("/api/media",Media);
+app.use("/api/user/auth", adminAuthRoutes);
+app.use("/api/country", Country);
+app.use("/api/state", State);
+app.use("/api/city", City);
+app.use("/api/attraction", Attraction);
+app.use("/api/activity", Activity);
+app.use("/api/vehicle", Vehicle);
+app.use("/api/hotel", Hotel);
+app.use("/api/enquiry", Enquiry);
+app.use("/api/package", Package);
+app.use("/api/customizePackage", customizePackage);
+app.use("/api/media", Media);
 
 
 // Start server and connect to database
