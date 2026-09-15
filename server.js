@@ -39,7 +39,8 @@ app.use(helmet()); // Add security headers
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "https://tour-travel-backend-uk0s.onrender.com"
 ];
 
 
