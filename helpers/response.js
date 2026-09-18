@@ -124,4 +124,36 @@ PACKAGE: {
   ALREADY_EXISTS:"Package already exists",
   INVALID_ID:"Invalid package ID",
 },
+HERO: {
+  CREATED: "Hero created successfully",
+  FETCHED: "Heroes fetched successfully",
+  FETCHED_SINGLE: "Hero fetched successfully",
+  UPDATED: "Hero updated successfully",
+  DELETED: "Hero deleted successfully",
+  RESTORED: "Hero restored successfully",
+  NOT_FOUND: "Hero not found",
+  INVALID_ID: "Invalid hero ID"
+},
+ABOUT_US: {
+  CREATED: "About Us content created successfully",
+  FETCHED: "About Us content fetched successfully",
+  FETCHED_SINGLE: "About Us content fetched successfully",
+  UPDATED: "About Us content updated successfully",
+  DELETED: "About Us content deleted successfully",
+  RESTORED: "About Us content restored successfully",
+  NOT_FOUND: "About Us content not found",
+  INVALID_ID: "Invalid About Us ID"
+},
+PAGE_CONFIG: {
+  CREATED: "Page configuration created successfully",
+  FETCHED: "Page configuration fetched successfully",
+  UPDATED: "Page sections updated successfully",
+  NOT_FOUND: "Page configuration not found",
+  INVALID_PAGE: "Invalid page",
+  INVALID_SECTION: "Invalid section",
+  DUPLICATE_SECTION: "Duplicate sections are not allowed",
+  INVALID_ORDER: "Invalid section order",
+  ALREADY_EXISTS: "Page configuration already exists",
+
+}
 };
