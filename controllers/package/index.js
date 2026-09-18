@@ -1902,7 +1902,6 @@ export const updatePackage = async (
     const existingPackage =
       await Package.findOne({
         _id: id,
-        isActive: true,
       }).lean();
 
 
@@ -1983,6 +1982,7 @@ export const updatePackage = async (
       "sortOrder",
 
       "status",
+      "isActive",
       "currency",
       "destinations",
       "overview",
@@ -2012,6 +2012,12 @@ export const updatePackage = async (
         }
       }
     );
+
+    if (updateData.isActive !== undefined) {
+      const activeBool = updateData.isActive === true || updateData.isActive === "true";
+      updateData.isActive = activeBool;
+      updateData.deletedAt = activeBool ? null : new Date();
+    }
 
 
     // ============================================================
@@ -2204,7 +2210,6 @@ export const updatePackage = async (
 
         {
           _id: id,
-          isActive: true,
         },
 
         {
@@ -2378,3 +2383,138 @@ export const deletePackage = async (
     );
   }
 };
+
+
+// ================================================================
+// UPDATE PACKAGE STATUS (ACTIVE / INACTIVE & PUBLISHING STATUS)
+// ================================================================
+
+export const updatePackageStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive, status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(
+        res,
+        HTTP_STATUS_CODES.BAD_REQUEST,
+        RESPONSE_MESSAGES.PACKAGE.INVALID_ID
+      );
+    }
+
+    const pkg = await Package.findById(id);
+
+    if (!pkg) {
+      return sendError(
+        res,
+        HTTP_STATUS_CODES.NOT_FOUND,
+        RESPONSE_MESSAGES.PACKAGE.NOT_FOUND
+      );
+    }
+
+    // 1. If explicit isActive is provided
+    if (isActive !== undefined) {
+      const activeBool = isActive === true || isActive === "true";
+      pkg.isActive = activeBool;
+      if (activeBool) {
+        pkg.deletedAt = null;
+      } else {
+        pkg.deletedAt = new Date();
+      }
+    }
+
+    // 2. If status is provided
+    if (status !== undefined) {
+      const allowedStatuses = ["draft", "published", "archived"];
+      if (!allowedStatuses.includes(status)) {
+        return sendError(
+          res,
+          HTTP_STATUS_CODES.BAD_REQUEST,
+          "Invalid package status. Allowed values: draft, published, archived"
+        );
+      }
+      pkg.status = status;
+      if (status === "published" && !pkg.publishedAt) {
+        pkg.publishedAt = new Date();
+      }
+    }
+
+    // 3. If neither isActive nor status is explicitly passed, toggle isActive
+    if (isActive === undefined && status === undefined) {
+      pkg.isActive = !pkg.isActive;
+      if (pkg.isActive) {
+        pkg.deletedAt = null;
+      } else {
+        pkg.deletedAt = new Date();
+      }
+    }
+
+    if (req.user?.id) {
+      pkg.updatedBy = req.user.id;
+    }
+
+    await pkg.save();
+
+    return sendResponse(
+      res,
+      HTTP_STATUS_CODES.OK,
+      RESPONSE_MESSAGES.PACKAGE.STATUS_UPDATED,
+      pkg
+    );
+  } catch (error) {
+    console.error("Update Package Status Error :", error);
+
+    return sendError(
+      res,
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      RESPONSE_MESSAGES.COMMON.INTERNAL_SERVER_ERROR
+    );
+  }
+};
+
+
+// ================================================================
+// HARD DELETE PACKAGE (PERMANENT DELETE)
+// ================================================================
+
+export const hardDeletePackage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(
+        res,
+        HTTP_STATUS_CODES.BAD_REQUEST,
+        RESPONSE_MESSAGES.PACKAGE.INVALID_ID
+      );
+    }
+
+    const deletedPackage = await Package.findByIdAndDelete(id);
+
+    if (!deletedPackage) {
+      return sendError(
+        res,
+        HTTP_STATUS_CODES.NOT_FOUND,
+        RESPONSE_MESSAGES.PACKAGE.NOT_FOUND
+      );
+    }
+
+    return sendResponse(
+      res,
+      HTTP_STATUS_CODES.OK,
+      RESPONSE_MESSAGES.PACKAGE.HARD_DELETED,
+      {
+        id: deletedPackage._id,
+        title: deletedPackage.title,
+      }
+    );
+  } catch (error) {
+    console.error("Hard Delete Package Error :", error);
+
+    return sendError(
+      res,
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      RESPONSE_MESSAGES.COMMON.INTERNAL_SERVER_ERROR
+    );
+  }
+};

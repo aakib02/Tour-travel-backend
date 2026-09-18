@@ -7,7 +7,9 @@ import {
   createPackage,
   getPackages,
   updatePackage,
+  updatePackageStatus,
   deletePackage,
+  hardDeletePackage,
 } from "../../controllers/package/index.js";
 
 
@@ -74,6 +76,25 @@ router.put(
 
 
 // ================================================================
+// UPDATE STATUS (ACTIVE / INACTIVE & STATUS)
+// ================================================================
+
+router.patch(
+  "/:id/status",
+  authMiddleware,
+  adminMiddleware,
+  updatePackageStatus
+);
+
+router.patch(
+  "/status/:id",
+  authMiddleware,
+  adminMiddleware,
+  updatePackageStatus
+);
+
+
+// ================================================================
 // DELETE — SOFT DELETE
 // ================================================================
 
@@ -89,6 +110,25 @@ router.delete(
   authMiddleware,
   adminMiddleware,
   deletePackage
+);
+
+
+// ================================================================
+// DELETE — HARD DELETE (PERMANENT)
+// ================================================================
+
+router.delete(
+  "/hard-delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  hardDeletePackage
+);
+
+router.delete(
+  "/:id/hard-delete",
+  authMiddleware,
+  adminMiddleware,
+  hardDeletePackage
 );
 
 

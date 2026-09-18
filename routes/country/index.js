@@ -20,11 +20,9 @@ const router = express.Router();
 // Create
 router.post("/create",authMiddleware,adminMiddleware,createCountry);
 
-// Get all
+// Get all (Public)
 router.get(
   "/get",
-  authMiddleware,
-  adminMiddleware,
   getCountries
 );
 

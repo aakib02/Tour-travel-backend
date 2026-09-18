@@ -502,6 +502,7 @@ export const getActivities = async (req, res) => {
 
     const {
       id,
+      slug,
 
       page = 1,
       limit = 10,
@@ -554,7 +555,7 @@ export const getActivities = async (req, res) => {
 
 
     // ============================================================
-    // SINGLE ACTIVITY
+    // SINGLE ACTIVITY BY ID
     // ============================================================
 
     if (id) {
@@ -607,6 +608,44 @@ export const getActivities = async (req, res) => {
         );
       }
 
+
+      if (activity?.pricing) {
+        delete activity.pricing;
+      }
+
+      return sendResponse(
+        res,
+        HTTP_STATUS_CODES.OK,
+        RESPONSE_MESSAGES.ACTIVITY.FETCHED_SINGLE,
+        activity
+      );
+    }
+
+
+    // ============================================================
+    // SINGLE ACTIVITY BY SLUG
+    // ============================================================
+
+    if (slug) {
+      const activity = await Activity.findOne({
+        slug: slug.trim().toLowerCase(),
+        isActive: true,
+      })
+        .populate("stateId", "name slug code region")
+        .populate("cityId", "name slug stateId")
+        .populate("attractionId", "name slug category")
+        .populate("heroImage.mediaId", "url secureUrl title alt originalName mimeType size")
+        .populate("gallery.mediaId", "url secureUrl title alt originalName mimeType size")
+        .select("-pricing")
+        .lean();
+
+      if (!activity) {
+        return sendError(
+          res,
+          HTTP_STATUS_CODES.NOT_FOUND,
+          RESPONSE_MESSAGES.ACTIVITY.NOT_FOUND
+        );
+      }
 
       if (activity?.pricing) {
         delete activity.pricing;

@@ -447,6 +447,7 @@ export const getAttractions = async (req, res) => {
 
     const {
       id,
+      slug,
 
       page = 1,
       limit = 10,
@@ -482,7 +483,7 @@ export const getAttractions = async (req, res) => {
 
 
     // ============================================================
-    // GET SINGLE ATTRACTION
+    // GET SINGLE ATTRACTION BY ID
     // ============================================================
 
     if (id) {
@@ -527,6 +528,38 @@ export const getAttractions = async (req, res) => {
         );
       }
 
+
+      return sendResponse(
+        res,
+        HTTP_STATUS_CODES.OK,
+        RESPONSE_MESSAGES.ATTRACTION.FETCHED_SINGLE,
+        sanitizeAttractionTicket(attraction)
+      );
+    }
+
+
+    // ============================================================
+    // GET SINGLE ATTRACTION BY SLUG
+    // ============================================================
+
+    if (slug) {
+      const attraction = await Attraction.findOne({
+        slug: slug.trim().toLowerCase(),
+        isActive: true,
+      })
+        .populate("stateId", "name slug code region")
+        .populate("cityId", "name slug stateId")
+        .populate("heroImage.mediaId", "url secureUrl title alt originalName mimeType size")
+        .populate("gallery.mediaId", "url secureUrl title alt originalName mimeType size")
+        .lean();
+
+      if (!attraction) {
+        return sendError(
+          res,
+          HTTP_STATUS_CODES.NOT_FOUND,
+          RESPONSE_MESSAGES.ATTRACTION.NOT_FOUND
+        );
+      }
 
       return sendResponse(
         res,
