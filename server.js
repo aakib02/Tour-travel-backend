@@ -23,6 +23,10 @@ import Enquiry from "./routes/enquiry/index.js";
 import Package from "./routes/package/index.js";
 import customizePackage from "./routes/customizePackage/index.js";
 import Media from "./routes/media/index.js";
+import Hero from "./routes/hero/index.js";
+import AboutUs from "./routes/AboutUs/index.js";
+import PageConfig from "./routes/pageConfig/index.js";
+
 
 // Load environment variables
 dotenv.config();
@@ -111,18 +115,21 @@ io.on("connection", (socket) => {
 
 
 
-app.use("/api/user/auth", adminAuthRoutes);
-app.use("/api/country", Country);
-app.use("/api/state", State);
-app.use("/api/city", City);
-app.use("/api/attraction", Attraction);
-app.use("/api/activity", Activity);
-app.use("/api/vehicle", Vehicle);
-app.use("/api/hotel", Hotel);
-app.use("/api/enquiry", Enquiry);
-app.use("/api/package", Package);
-app.use("/api/customizePackage", customizePackage);
-app.use("/api/media", Media);
+app.use("/api/user/auth",adminAuthRoutes);
+app.use("/api/country",Country);
+app.use("/api/state",State);
+app.use("/api/city",City);
+app.use("/api/attraction",Attraction);
+app.use("/api/activity",Activity);
+app.use("/api/vehicle",Vehicle);
+app.use("/api/hotel",Hotel);
+app.use("/api/enquiry",Enquiry);
+app.use("/api/package",Package);
+app.use("/api/customizePackage",customizePackage);
+app.use("/api/media",Media);
+app.use("/api/hero",Hero);
+app.use("/api/about-us", AboutUs);
+app.use("/api/page-config", PageConfig);
 
 
 // Start server and connect to database
