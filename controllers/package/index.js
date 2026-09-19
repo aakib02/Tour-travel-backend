@@ -670,26 +670,42 @@ export const getPackages = async (
             "itinerary.cityId",
             "name slug"
           )
-          .populate(
-            "itinerary.attractions",
-            "name slug"
-          )
-          .populate(
-            "itinerary.activities",
-            "name slug"
-          )
-          .populate(
-            "itinerary.hotel.hotelId",
-            "name slug category starRating"
-          )
+          .populate({
+            path: "itinerary.attractions",
+            select: "name slug category rating heroImage shortDescription",
+            populate: {
+              path: "heroImage.mediaId",
+              select: "name url secureUrl alt",
+            },
+          })
+          .populate({
+            path: "itinerary.activities",
+            select: "name slug category duration rating heroImage shortDescription",
+            populate: {
+              path: "heroImage.mediaId",
+              select: "name url secureUrl alt",
+            },
+          })
+          .populate({
+            path: "itinerary.hotel.hotelId",
+            select: "name slug category starRating heroImage shortDescription address",
+            populate: {
+              path: "heroImage.mediaId",
+              select: "name url secureUrl alt",
+            },
+          })
           .populate(
             "itinerary.transport.vehicleId",
             "name slug type seatingCapacity"
           )
-          .populate(
-            "accommodation.hotelId",
-            "name slug category starRating"
-          )
+          .populate({
+            path: "accommodation.hotelId",
+            select: "name slug category starRating heroImage shortDescription address",
+            populate: {
+              path: "heroImage.mediaId",
+              select: "name url secureUrl alt",
+            },
+          })
           .populate(
             "transport.vehicles",
             "name slug type seatingCapacity"
@@ -1783,6 +1799,42 @@ export const getPackages = async (
           "endLocation.cityId",
           "name slug"
         )
+        .populate(
+          "itinerary.cityId",
+          "name slug"
+        )
+        .populate({
+          path: "itinerary.attractions",
+          select: "name slug category rating heroImage shortDescription",
+          populate: {
+            path: "heroImage.mediaId",
+            select: "name url secureUrl alt",
+          },
+        })
+        .populate({
+          path: "itinerary.activities",
+          select: "name slug category duration rating heroImage shortDescription",
+          populate: {
+            path: "heroImage.mediaId",
+            select: "name url secureUrl alt",
+          },
+        })
+        .populate({
+          path: "itinerary.hotel.hotelId",
+          select: "name slug category starRating heroImage shortDescription address",
+          populate: {
+            path: "heroImage.mediaId",
+            select: "name url secureUrl alt",
+          },
+        })
+        .populate({
+          path: "accommodation.hotelId",
+          select: "name slug category starRating heroImage shortDescription address",
+          populate: {
+            path: "heroImage.mediaId",
+            select: "name url secureUrl alt",
+          },
+        })
         .populate(
           "heroImage.mediaId",
           "name url secureUrl alt format width height"
