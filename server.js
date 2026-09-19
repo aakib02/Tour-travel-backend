@@ -45,31 +45,17 @@ const allowedOrigins = [
   "https://tour-travel-backend-uk0s.onrender.com",
   "https://admin-indiabycaranddriver-eight.vercel.app",
   "https://indiabycaranddriver-umber.vercel.app",
+  "https://indiabycaranddriver-9vjtffi8b-junaid-66e8.vercel.app",
   "https://indiabycaranddriver.com",
   "https://www.indiabycaranddriver.com",
 ];
 
-const isOriginAllowed = (origin) => {
-  // Allow requests with no origin (e.g. mobile apps, curl, server-side fetch, direct browser navigation)
-  if (!origin) return true;
-
-  // Allow explicit whitelist
-  if (allowedOrigins.includes(origin)) return true;
-
-  // Allow all Vercel deployment preview and production URLs (*.vercel.app)
-  if (origin.endsWith(".vercel.app")) return true;
-
-  // Allow custom domain variations
-  if (origin.includes("indiabycaranddriver")) return true;
-
-  return false;
-};
-
-// 1. CORS Middleware (Must run before other middlewares and helmet)
+// 1. CORS Middleware (Runs before other middlewares and helmet)
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (isOriginAllowed(origin)) {
+      const cleanOrigin = origin ? origin.replace(/\/$/, "") : origin;
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes(cleanOrigin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -89,7 +75,7 @@ app.use(
   })
 );
 
-// 2. Security Headers (Allow cross-origin resource sharing)
+// 2. Security Headers
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -99,7 +85,7 @@ app.use(
 
 
 
-app.use(bodyParser.json({ limit: '500mb' }));
+app.use(bodyParser.json({ limit: "500mb" }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
@@ -115,7 +101,8 @@ app.use((err, req, res, next) => {
 export const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (isOriginAllowed(origin)) {
+      const cleanOrigin = origin ? origin.replace(/\/$/, "") : origin;
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes(cleanOrigin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
