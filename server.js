@@ -38,38 +38,63 @@ const server = http.createServer(app);
 // save
 
 
-app.use(helmet()); // Add security headers
-
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:3000",
   "https://tour-travel-backend-uk0s.onrender.com",
   "https://admin-indiabycaranddriver-eight.vercel.app",
-  "https://indiabycaranddriver-umber.vercel.app"
+  "https://indiabycaranddriver-umber.vercel.app",
+  "https://indiabycaranddriver.com",
+  "https://www.indiabycaranddriver.com",
 ];
 
+const isOriginAllowed = (origin) => {
+  // Allow requests with no origin (e.g. mobile apps, curl, server-side fetch, direct browser navigation)
+  if (!origin) return true;
 
+  // Allow explicit whitelist
+  if (allowedOrigins.includes(origin)) return true;
 
+  // Allow all Vercel deployment preview and production URLs (*.vercel.app)
+  if (origin.endsWith(".vercel.app")) return true;
 
+  // Allow custom domain variations
+  if (origin.includes("indiabycaranddriver")) return true;
 
-app.use(cors({
-  origin: function (origin, callback) {
+  return false;
+};
 
-    if (!origin || allowedOrigins.includes(origin)) {
+// 1. CORS Middleware (Must run before other middlewares and helmet)
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "enabled",
+      "X-Custom-Header",
+      "Accept",
+    ],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  })
+);
 
-      callback(null, origin);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'enabled', 'X-Custom-Header'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-
-}));
+// 2. Security Headers (Allow cross-origin resource sharing)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
 
 
@@ -89,7 +114,13 @@ app.use((err, req, res, next) => {
 // 🔽 Socket.IO setup
 export const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
   },
