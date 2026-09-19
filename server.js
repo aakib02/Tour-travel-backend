@@ -24,7 +24,7 @@ import Package from "./routes/package/index.js";
 import customizePackage from "./routes/customizePackage/index.js";
 import Media from "./routes/media/index.js";
 import Hero from "./routes/hero/index.js";
-import AboutUs from "./routes/AboutUs/index.js";
+import AboutUs from "./routes/aboutUs/index.js";
 import PageConfig from "./routes/pageConfig/index.js";
 
 
