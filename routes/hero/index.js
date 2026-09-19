@@ -6,6 +6,7 @@ import adminMiddleware from "../../middleware/adminMiddleware.js";
 import {
   createHero,
   getHero,
+  getActiveHero,
   updateHero,
   deleteHero,
   restoreHero,
@@ -13,7 +14,20 @@ import {
 
 const router = express.Router();
 
+
 // ============================================================
+// PUBLIC WEBSITE
+// ============================================================
+
+// No login required
+router.get(
+  "/active",
+  getActiveHero
+);
+
+
+// ============================================================
+// ADMIN ONLY
 // GET ACTIVE HERO (PUBLIC — USER FACING)
 // ============================================================
 
@@ -31,39 +45,29 @@ router.use(
   adminMiddleware
 );
 
-// ============================================================
-// CREATE
-// ============================================================
 
+// Create Hero
 router.post(
   "/create",
   createHero
 );
 
 
-
-// ============================================================
-// UPDATE
-// ============================================================
-
+// Update Hero
 router.put(
   "/:id",
   updateHero
 );
 
-// ============================================================
-// DELETE
-// ============================================================
 
+// Soft Delete Hero
 router.delete(
   "/:id",
   deleteHero
 );
 
-// ============================================================
-// RESTORE
-// ============================================================
 
+// Restore Hero
 router.patch(
   "/:id/restore",
   restoreHero
