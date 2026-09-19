@@ -46,6 +46,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://tour-travel-backend-uk0s.onrender.com",
   "https://admin-indiabycaranddriver-eight.vercel.app",
+  "https://indiabycaranddriver-umber.vercel.app"
 ];
 
 
