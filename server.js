@@ -26,6 +26,7 @@ import Media from "./routes/media/index.js";
 import Hero from "./routes/hero/index.js";
 import AboutUs from "./routes/aboutUs/index.js";
 import PageConfig from "./routes/pageConfig/index.js";
+import Dashboard from "./routes/dashboard/index.js";
 
 
 // Load environment variables
@@ -149,6 +150,7 @@ app.use("/api/media",Media);
 app.use("/api/hero",Hero);
 app.use("/api/about-us", AboutUs);
 app.use("/api/page-config", PageConfig);
+app.use("/api/dashboard", Dashboard);
 
 
 // Start server and connect to database
