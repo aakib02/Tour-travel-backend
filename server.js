@@ -50,6 +50,8 @@ const allowedOrigins = [
   "https://indiabycaranddriver.com",
   "https://www.indiabycaranddriver.com",
   "https://tour-travel-woad-eight.vercel.app"
+  "https://indiabycardriver.com"
+  "http://indiabycardriver.com"
 ];
 
 // 1. CORS Middleware (Runs before other middlewares and helmet)
