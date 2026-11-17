@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 import City from "../../models/city/index.js";
 import State from "../../models/state/index.js";
 import Country from "../../models/country/index.js";
+import Package from "../../models/package/index.js";
+import Hotel from "../../models/hotel/index.js";
+import Attraction from "../../models/attraction/index.js";
+import Activity from "../../models/activity/index.js";
 
 import {
   HTTP_STATUS_CODES,
@@ -1337,7 +1341,6 @@ export const deleteCity = async (
 
 
     if (!city) {
-
       return sendError(
         res,
         HTTP_STATUS_CODES.NOT_FOUND,
@@ -1345,6 +1348,41 @@ export const deleteCity = async (
       );
     }
 
+    // Cascade: unlink deleted city from packages, hotels, attractions, activities
+    await Promise.allSettled([
+      Package.updateMany(
+        { cities: id },
+        { $pull: { cities: id } }
+      ),
+      Package.updateMany(
+        { "startLocation.cityId": id },
+        { $unset: { "startLocation.cityId": 1 } }
+      ),
+      Package.updateMany(
+        { "endLocation.cityId": id },
+        { $unset: { "endLocation.cityId": 1 } }
+      ),
+      Package.updateMany(
+        { "itinerary.cityId": id },
+        { $unset: { "itinerary.$[].cityId": 1 } }
+      ),
+      Package.updateMany(
+        { "accommodation.cityId": id },
+        { $pull: { accommodation: { cityId: id } } }
+      ),
+      Hotel.updateMany(
+        { cityId: id },
+        { $unset: { cityId: 1 } }
+      ),
+      Attraction.updateMany(
+        { cityId: id },
+        { $unset: { cityId: 1 } }
+      ),
+      Activity.updateMany(
+        { cityId: id },
+        { $unset: { cityId: 1 } }
+      ),
+    ]);
 
     return sendResponse(
       res,

@@ -43,5 +43,6 @@ export const sendResponse = (res, statusCode, message, data) => {
  * @param {string} error - The error message.
  */
 export const sendError = (res, statusCode, error) => {
-    res.status(statusCode).json({ error });
+    const errorText = typeof error === 'string' ? error : (error?.message || 'An error occurred');
+    res.status(statusCode).json({ error, message: errorText });
 };

@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 
 import Country from "../../models/country/index.js";
+import State from "../../models/state/index.js";
+import City from "../../models/city/index.js";
+import Package from "../../models/package/index.js";
 
 import {
   HTTP_STATUS_CODES,RESPONSE_MESSAGES
@@ -675,6 +678,21 @@ export const deleteCountry = async (req, res) => {
       );
     }
 
+    // Cascade: unlink deleted country from packages, states, cities
+    await Promise.allSettled([
+      Package.updateMany(
+        { countries: id },
+        { $pull: { countries: id } }
+      ),
+      State.updateMany(
+        { countryId: id },
+        { $unset: { countryId: 1 } }
+      ),
+      City.updateMany(
+        { countryId: id },
+        { $unset: { countryId: 1 } }
+      ),
+    ]);
 
     // ============================================================
     // RESPONSE

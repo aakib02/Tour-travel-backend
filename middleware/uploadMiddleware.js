@@ -28,15 +28,29 @@ const fileFilter = (req, file, cb) => {
     "video/webm",
     "video/quicktime",
 
-    // Raw / documents if required later
+    // Documents
     "application/pdf",
+
+    // Spreadsheets & CSV
+    "text/csv",
+    "text/plain",
+    "text/x-csv",
+    "application/csv",
+    "application/x-csv",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/octet-stream",
   ];
 
+  const isAllowedExt = /\.(jpe?g|png|webp|gif|avif|mp4|webm|mov|pdf|csv|xlsx|xls)$/i.test(
+    file.originalname || ""
+  );
 
   if (
     allowedMimeTypes.includes(
       file.mimetype
-    )
+    ) ||
+    isAllowedExt
   ) {
     return cb(null, true);
   }

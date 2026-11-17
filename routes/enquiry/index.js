@@ -36,6 +36,28 @@ router.get(
   getEnquiries
 );
 
+router.get(
+  "/get/:id",
+  authMiddleware,
+  adminMiddleware,
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
+  getEnquiries
+);
+
+router.get(
+  "/:id",
+  authMiddleware,
+  adminMiddleware,
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
+  getEnquiries
+);
+
 
 // ================================================================
 // ADMIN — UPDATE

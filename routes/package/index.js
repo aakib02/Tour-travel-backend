@@ -2,6 +2,7 @@ import express from "express";
 
 import authMiddleware from "../../middleware/authMiddleware.js";
 import adminMiddleware from "../../middleware/adminMiddleware.js";
+import upload from "../../middleware/uploadMiddleware.js";
 
 import {
   createPackage,
@@ -12,8 +13,36 @@ import {
   hardDeletePackage,
 } from "../../controllers/package/index.js";
 
+import {
+  downloadPackageTemplate,
+  bulkUploadPackagesFromExcel,
+} from "../../controllers/package/excelUpload.js";
+
 
 const router = express.Router();
+
+
+// ================================================================
+// EXCEL / CSV TEMPLATE & BULK UPLOAD
+// ================================================================
+
+router.get(
+  "/template/excel",
+  downloadPackageTemplate
+);
+
+router.get(
+  "/template",
+  downloadPackageTemplate
+);
+
+router.post(
+  "/bulk-upload",
+  authMiddleware,
+  adminMiddleware,
+  upload.single("file"),
+  bulkUploadPackagesFromExcel
+);
 
 
 // ================================================================

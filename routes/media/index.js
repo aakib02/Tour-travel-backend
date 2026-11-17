@@ -11,6 +11,9 @@ import {
   getSingleMedia,
   deleteMedia,
   restoreMedia,
+  checkMediaUsage,
+  bulkDeleteMedia,
+  downloadMediaZip,
 } from "../../controllers/media/index.js";
 
 
@@ -76,6 +79,46 @@ router.post(
 router.get(
   "/get",
   getMedia
+);
+
+
+// ============================================================
+// CHECK USAGE (Inspect where assets are referenced before deletion)
+// ============================================================
+
+router.post(
+  "/check-usage",
+  checkMediaUsage
+);
+
+
+// ============================================================
+// BULK DELETE
+// ============================================================
+
+router.post(
+  "/bulk-delete",
+  bulkDeleteMedia
+);
+
+router.delete(
+  "/bulk-delete",
+  bulkDeleteMedia
+);
+
+
+// ============================================================
+// DOWNLOAD ZIP ARCHIVE (Selected or Full Media)
+// ============================================================
+
+router.post(
+  "/download-zip",
+  downloadMediaZip
+);
+
+router.get(
+  "/download-zip",
+  downloadMediaZip
 );
 
 

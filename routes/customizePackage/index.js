@@ -38,6 +38,28 @@ router.get(
   getCustomizePackages
 );
 
+router.get(
+  "/get/:id",
+  authMiddleware,
+  adminMiddleware,
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
+  getCustomizePackages
+);
+
+router.get(
+  "/:id",
+  authMiddleware,
+  adminMiddleware,
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
+  getCustomizePackages
+);
+
 
 // Update complete customization request
 router.put(

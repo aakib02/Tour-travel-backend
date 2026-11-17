@@ -1680,24 +1680,14 @@ export const deleteCustomizePackage = async (
 
 
     const deletedPackage =
-      await CustomizePackage.findOneAndUpdate(
-
-        {
-          _id: id,
-          isActive: true,
-        },
-
+      await CustomizePackage.findByIdAndUpdate(
+        id,
         {
           $set: {
-
-            isActive:
-              false,
-
-            deletedAt:
-              new Date(),
+            isActive: false,
+            deletedAt: new Date(),
           },
         },
-
         {
           new: true,
         }

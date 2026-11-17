@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Attraction from "../../models/attraction/index.js";
 import State from "../../models/state/index.js";
 import City from "../../models/city/index.js";
+import Package from "../../models/package/index.js";
 
 import {
   HTTP_STATUS_CODES,
@@ -1605,7 +1606,6 @@ export const deleteAttraction = async (
 
 
     if (!attraction) {
-
       return sendError(
         res,
         HTTP_STATUS_CODES.NOT_FOUND,
@@ -1613,14 +1613,24 @@ export const deleteAttraction = async (
       );
     }
 
+    // Cascade: remove deleted attraction from all packages and itineraries
+    await Promise.allSettled([
+      Package.updateMany(
+        { attractions: id },
+        { $pull: { attractions: id } }
+      ),
+      Package.updateMany(
+        { "itinerary.attractions": id },
+        { $pull: { "itinerary.$[].attractions": id } }
+      ),
+    ]);
 
     return sendResponse(
       res,
       HTTP_STATUS_CODES.OK,
       RESPONSE_MESSAGES.ATTRACTION.DELETED,
       {
-        id:
-          attraction._id,
+        id: attraction._id,
       }
     );
 

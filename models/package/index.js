@@ -666,7 +666,8 @@ const packageSchema = new Schema(
       mediaId: {
         type: Schema.Types.ObjectId,
         ref: "Media",
-        required: true,
+        required: false,
+        default: null,
       },
 
       alt: {
@@ -691,7 +692,8 @@ const packageSchema = new Schema(
         mediaId: {
           type: Schema.Types.ObjectId,
           ref: "Media",
-          required: true,
+          required: false,
+          default: null,
         },
 
         alt: {

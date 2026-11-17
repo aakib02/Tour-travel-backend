@@ -4,6 +4,7 @@ import Activity from "../../models/activity/index.js";
 import State from "../../models/state/index.js";
 import City from "../../models/city/index.js";
 import Attraction from "../../models/attraction/index.js";
+import Package from "../../models/package/index.js";
 
 import {
   HTTP_STATUS_CODES,
@@ -2027,14 +2028,24 @@ export const deleteActivity = async (
       );
     }
 
+    // Cascade: remove deleted activity from all packages and itineraries
+    await Promise.allSettled([
+      Package.updateMany(
+        { activities: id },
+        { $pull: { activities: id } }
+      ),
+      Package.updateMany(
+        { "itinerary.activities": id },
+        { $pull: { "itinerary.$[].activities": id } }
+      ),
+    ]);
 
     return sendResponse(
       res,
       HTTP_STATUS_CODES.OK,
       RESPONSE_MESSAGES.ACTIVITY.DELETED,
       {
-        id:
-          activity._id,
+        id: activity._id,
       }
     );
 

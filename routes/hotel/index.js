@@ -2,6 +2,7 @@ import express from "express";
 
 import authMiddleware from "../../middleware/authMiddleware.js";
 import adminMiddleware from "../../middleware/adminMiddleware.js";
+import upload from "../../middleware/uploadMiddleware.js";
 
 import {
   createHotel,
@@ -10,8 +11,36 @@ import {
   deleteHotel,
 } from "../../controllers/hotel/index.js";
 
+import {
+  downloadHotelTemplate,
+  bulkUploadHotelsFromExcel,
+} from "../../controllers/hotel/excelUpload.js";
+
 
 const router = express.Router();
+
+
+// ================================================================
+// EXCEL / CSV TEMPLATE & BULK UPLOAD
+// ================================================================
+
+router.get(
+  "/template/excel",
+  downloadHotelTemplate
+);
+
+router.get(
+  "/template",
+  downloadHotelTemplate
+);
+
+router.post(
+  "/bulk-upload",
+  authMiddleware,
+  adminMiddleware,
+  upload.single("file"),
+  bulkUploadHotelsFromExcel
+);
 
 
 // CREATE

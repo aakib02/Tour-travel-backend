@@ -13,6 +13,12 @@ import {
 } from "../../helpers/responseHelper.js";
 
 
+import { sendEmail } from "../../utils/mailer.js";
+import {
+  getCustomerEnquiryEmailTemplate,
+  getAdminEnquiryAlertTemplate,
+} from "../../utils/enquiryEmailTemplates.js";
+
 // ================================================================
 // CREATE ENQUIRY
 // PUBLIC API
@@ -123,6 +129,43 @@ export const createEnquiry = async (req, res) => {
       await Enquiry.create(
         enquiryData
       );
+
+
+    // ============================================================
+    // SEND NOTIFICATION EMAILS (CUSTOMER & ADMIN)
+    // Non-blocking so response is fast and submission never fails
+    // ============================================================
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.MAIL_USER;
+    const refCode = enquiry._id ? enquiry._id.toString().slice(-6).toUpperCase() : "";
+
+    // 1. Customer Confirmation Email
+    const customerMailPromise = sendEmail({
+      to: enquiry.email,
+      subject: `Thank you for contacting India By Car And Driver! [Ref: #${refCode}]`,
+      html: getCustomerEnquiryEmailTemplate(enquiry),
+    });
+
+    // 2. Admin Alert Email
+    const adminMailPromise = adminEmail
+      ? sendEmail({
+          to: adminEmail,
+          subject: `🚨 New Enquiry: ${enquiry.subject || "Travel Enquiry"} - ${enquiry.name}`,
+          html: getAdminEnquiryAlertTemplate(enquiry),
+        })
+      : Promise.resolve();
+
+    Promise.allSettled([customerMailPromise, adminMailPromise])
+      .then((results) => {
+        results.forEach((r, idx) => {
+          const recipient = idx === 0 ? `Customer (${enquiry.email})` : `Admin (${adminEmail})`;
+          if (r.status === "rejected" || (r.value && !r.value.success)) {
+            console.warn(`⚠️ Failed to deliver enquiry email to ${recipient}`);
+          }
+        });
+      })
+      .catch((err) => {
+        console.error("Enquiry notification email dispatch error:", err);
+      });
 
 
     return sendResponse(

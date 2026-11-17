@@ -2,6 +2,7 @@ import express from "express";
 
 import authMiddleware from "../../middleware/authMiddleware.js";
 import adminMiddleware from "../../middleware/adminMiddleware.js";
+import upload from "../../middleware/uploadMiddleware.js";
 
 import {
   createVehicle,
@@ -10,8 +11,36 @@ import {
   deleteVehicle,
 } from "../../controllers/vehicle/index.js";
 
+import {
+  downloadVehicleTemplate,
+  bulkUploadVehiclesFromExcel,
+} from "../../controllers/vehicle/excelUpload.js";
+
 
 const router = express.Router();
+
+
+// ================================================================
+// EXCEL / CSV TEMPLATE & BULK UPLOAD
+// ================================================================
+
+router.get(
+  "/template/excel",
+  downloadVehicleTemplate
+);
+
+router.get(
+  "/template",
+  downloadVehicleTemplate
+);
+
+router.post(
+  "/bulk-upload",
+  authMiddleware,
+  adminMiddleware,
+  upload.single("file"),
+  bulkUploadVehiclesFromExcel
+);
 
 
 // ================================================================
@@ -32,6 +61,24 @@ router.post(
 
 router.get(
   "/get",
+  getVehicles
+);
+
+router.get(
+  "/get/:id",
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
+  getVehicles
+);
+
+router.get(
+  "/:id",
+  (req, res, next) => {
+    req.query.id = req.params.id;
+    next();
+  },
   getVehicles
 );
 

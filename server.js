@@ -86,17 +86,9 @@ app.use(
 
 
 
-app.use(bodyParser.json({ limit: "500mb" }));
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
-
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack || err);
-  res.status(err.status || 500).json({ message: err.message || "Internal server error" });
-});
 
 // 🔽 Socket.IO setup
 export const io = new Server(server, {
@@ -151,6 +143,24 @@ app.use("/api/hero",Hero);
 app.use("/api/about-us", AboutUs);
 app.use("/api/page-config", PageConfig);
 app.use("/api/dashboard", Dashboard);
+
+// 404 Not Found Handler for undefined routes
+app.use((req, res) => {
+  res.status(404).json({
+    error: `Route not found: ${req.method} ${req.originalUrl}`,
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// Centralized error handling middleware (must be registered after all routes)
+app.use((err, req, res, next) => {
+  console.error("Server Error:", err.stack || err);
+  const status = err.message === "Not allowed by CORS" ? 403 : (err.status || err.statusCode || 500);
+  res.status(status).json({
+    error: err.message || "Internal server error",
+    message: err.message || "Internal server error",
+  });
+});
 
 
 // Start server and connect to database

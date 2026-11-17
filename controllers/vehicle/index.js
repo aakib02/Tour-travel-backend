@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 import Vehicle from "../../models/vehicle/index.js";
+import Package from "../../models/package/index.js";
 
 import {
   HTTP_STATUS_CODES,
@@ -1340,7 +1341,6 @@ export const deleteVehicle = async (
 
 
     if (!vehicle) {
-
       return sendError(
         res,
         HTTP_STATUS_CODES.NOT_FOUND,
@@ -1348,14 +1348,29 @@ export const deleteVehicle = async (
       );
     }
 
+    // Cascade: remove deleted vehicle from package transport and itineraries
+    await Promise.allSettled([
+      Package.updateMany(
+        { "transport.vehicleId": id },
+        { $unset: { "transport.vehicleId": 1 } }
+      ),
+      Package.updateMany(
+        { "transport.vehicles": id },
+        { $pull: { "transport.vehicles": id } }
+      ),
+      Package.updateMany(
+        { "itinerary.transport.vehicleId": id },
+        { $set: { "itinerary.$[elem].transport": null } },
+        { arrayFilters: [{ "elem.transport.vehicleId": id }] }
+      ),
+    ]);
 
     return sendResponse(
       res,
       HTTP_STATUS_CODES.OK,
       RESPONSE_MESSAGES.VEHICLE.DELETED,
       {
-        id:
-          vehicle._id,
+        id: vehicle._id,
       }
     );
 

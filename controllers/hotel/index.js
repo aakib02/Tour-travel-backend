@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Hotel from "../../models/hotel/index.js";
 import State from "../../models/state/index.js";
 import City from "../../models/city/index.js";
+import Package from "../../models/package/index.js";
 
 import {
   HTTP_STATUS_CODES,
@@ -1673,7 +1674,6 @@ export const deleteHotel = async (
 
 
     if (!hotel) {
-
       return sendError(
         res,
         HTTP_STATUS_CODES.NOT_FOUND,
@@ -1681,14 +1681,25 @@ export const deleteHotel = async (
       );
     }
 
+    // Cascade: remove deleted hotel from packages accommodation and itineraries
+    await Promise.allSettled([
+      Package.updateMany(
+        { "accommodation.hotelId": id },
+        { $pull: { accommodation: { hotelId: id } } }
+      ),
+      Package.updateMany(
+        { "itinerary.hotel.hotelId": id },
+        { $set: { "itinerary.$[elem].hotel": null } },
+        { arrayFilters: [{ "elem.hotel.hotelId": id }] }
+      ),
+    ]);
 
     return sendResponse(
       res,
       HTTP_STATUS_CODES.OK,
       RESPONSE_MESSAGES.HOTEL.DELETED,
       {
-        id:
-          hotel._id,
+        id: hotel._id,
       }
     );
 

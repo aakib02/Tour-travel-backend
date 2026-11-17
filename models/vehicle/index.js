@@ -280,7 +280,8 @@ heroImage: {
   mediaId: {
     type: Schema.Types.ObjectId,
     ref: "Media",
-    required: true,
+    required: false,
+    default: null,
   },
 
   alt: {
@@ -305,7 +306,8 @@ gallery: [
     mediaId: {
       type: Schema.Types.ObjectId,
       ref: "Media",
-      required: true,
+      required: false,
+      default: null,
     },
 
     alt: {

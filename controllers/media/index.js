@@ -3,6 +3,17 @@ import mongoose from "mongoose";
 
 import cloudinary from "../../config/cloudinary.js";
 import Media from "../../models/media/index.js";
+import Package from "../../models/package/index.js";
+import Hotel from "../../models/hotel/index.js";
+import Vehicle from "../../models/vehicle/index.js";
+import Activity from "../../models/activity/index.js";
+import Attraction from "../../models/attraction/index.js";
+import Country from "../../models/country/index.js";
+import State from "../../models/state/index.js";
+import City from "../../models/city/index.js";
+import Hero from "../../models/hero/index.js";
+import AboutUs from "../../models/aboutUs/index.js";
+import Review from "../../models/review/index.js";
 
 import {
   HTTP_STATUS_CODES,
@@ -14,6 +25,7 @@ import {
   sendError,
 } from "../../helpers/responseHelper.js";
 import { deleteFromCloudinary } from "../../utils/cloudinary.js";
+import { buildZipBuffer, fetchMediaBuffers } from "../../utils/zipStream.js";
 
 
 // ============================================================
@@ -601,92 +613,759 @@ export const getSingleMedia = async (req, res) => {
 };
 
 // ============================================================
-// DELETE MEDIA
+// SCAN MEDIA USAGE ACROSS ALL COLLECTIONS
 // ============================================================
 
-export const deleteMedia = async (req, res) => {
-  try {
+export const findMediaUsages = async (mediaIds) => {
+  const objectIds = mediaIds
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
 
-    const { id } = req.params;
+  if (!objectIds.length) {
+    return { totalUsages: 0, usages: [] };
+  }
 
+  const idStrings = new Set(objectIds.map((id) => id.toString()));
+  const usages = [];
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.BAD_REQUEST,
-        "Invalid media ID"
-      );
+  const [
+    packages,
+    hotels,
+    vehicles,
+    activities,
+    attractions,
+    countries,
+    states,
+    cities,
+    heroes,
+    reviews,
+    aboutDoc,
+  ] = await Promise.all([
+    Package.find({
+      $or: [
+        { "heroImage.mediaId": { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+      ],
+    }).select("title heroImage gallery").lean(),
+
+    Hotel.find({
+      $or: [
+        { "heroImage.mediaId": { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+        { "roomTypes.images.mediaId": { $in: objectIds } },
+        { ogImage: { $in: objectIds } },
+      ],
+    }).select("name heroImage gallery roomTypes ogImage").lean(),
+
+    Vehicle.find({
+      $or: [
+        { "heroImage.mediaId": { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+      ],
+    }).select("name heroImage gallery").lean(),
+
+    Activity.find({
+      $or: [
+        { "heroImage.mediaId": { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+      ],
+    }).select("title name heroImage gallery").lean(),
+
+    Attraction.find({
+      $or: [
+        { "heroImage.mediaId": { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+      ],
+    }).select("name heroImage gallery").lean(),
+
+    Country.find({
+      $or: [
+        { heroImage: { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+      ],
+    }).select("name heroImage gallery").lean(),
+
+    State.find({
+      $or: [
+        { "heroImage.mediaId": { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+      ],
+    }).select("name heroImage gallery").lean(),
+
+    City.find({
+      $or: [
+        { "heroImage.mediaId": { $in: objectIds } },
+        { "gallery.mediaId": { $in: objectIds } },
+      ],
+    }).select("name heroImage gallery").lean(),
+
+    Hero.find({
+      $or: [
+        { "slides.image.mediaId": { $in: objectIds } },
+        { "slides.thumbnail.mediaId": { $in: objectIds } },
+        { "showcase.image.mediaId": { $in: objectIds } },
+        { "trustCard.avatars.mediaId": { $in: objectIds } },
+      ],
+    }).select("title slides showcase trustCard").lean(),
+
+    Review.find({
+      "images.mediaId": { $in: objectIds },
+    }).select("userName title images").lean(),
+
+    AboutUs.findOne().lean(),
+  ]);
+
+  // Packages
+  packages.forEach((p) => {
+    if (p.heroImage?.mediaId && idStrings.has(p.heroImage.mediaId.toString())) {
+      usages.push({
+        entityType: "Package",
+        entityId: p._id,
+        entityTitle: p.title || "Untitled Package",
+        role: "Hero Image",
+        mediaId: p.heroImage.mediaId,
+      });
     }
-
-
-    const media = await Media.findOne({
-      _id: id,
-      isActive: true,
-    });
-
-
-    if (!media) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.NOT_FOUND,
-        "Media not found"
-      );
-    }
-
-
-    // ----------------------------------------------------------
-    // CHECK USAGE
-    // ----------------------------------------------------------
-
-    if (media.usageCount > 0) {
-      return sendError(
-        res,
-        HTTP_STATUS_CODES.CONFLICT,
-        "Media is currently being used and cannot be deleted"
-      );
-    }
-
-
-    // ----------------------------------------------------------
-    // DELETE FROM CLOUDINARY
-    // ----------------------------------------------------------
-
-    await deleteFromCloudinary(
-      media.publicId,
-      media.resourceType
-    );
-
-
-    // ----------------------------------------------------------
-    // SOFT DELETE
-    // ----------------------------------------------------------
-
-    media.isActive = false;
-    media.deletedAt = new Date();
-
-    await media.save();
-
-
-    return sendResponse(
-      res,
-      HTTP_STATUS_CODES.OK,
-      "Media deleted successfully",
-      {
-        id: media._id,
+    p.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "Package",
+          entityId: p._id,
+          entityTitle: p.title || "Untitled Package",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
       }
-    );
+    });
+  });
 
+  // Hotels
+  hotels.forEach((h) => {
+    if (h.heroImage?.mediaId && idStrings.has(h.heroImage.mediaId.toString())) {
+      usages.push({
+        entityType: "Hotel",
+        entityId: h._id,
+        entityTitle: h.name || "Untitled Hotel",
+        role: "Hero Image",
+        mediaId: h.heroImage.mediaId,
+      });
+    }
+    h.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "Hotel",
+          entityId: h._id,
+          entityTitle: h.name || "Untitled Hotel",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
+      }
+    });
+    h.roomTypes?.forEach((rt) => {
+      rt.images?.forEach((img) => {
+        if (img.mediaId && idStrings.has(img.mediaId.toString())) {
+          usages.push({
+            entityType: "Hotel",
+            entityId: h._id,
+            entityTitle: `${h.name || "Hotel"} (${rt.name || "Room"})`,
+            role: "Room Image",
+            mediaId: img.mediaId,
+          });
+        }
+      });
+    });
+    if (h.ogImage && idStrings.has(h.ogImage.toString())) {
+      usages.push({
+        entityType: "Hotel",
+        entityId: h._id,
+        entityTitle: h.name || "Untitled Hotel",
+        role: "SEO OG Image",
+        mediaId: h.ogImage,
+      });
+    }
+  });
+
+  // Vehicles
+  vehicles.forEach((v) => {
+    if (v.heroImage?.mediaId && idStrings.has(v.heroImage.mediaId.toString())) {
+      usages.push({
+        entityType: "Vehicle",
+        entityId: v._id,
+        entityTitle: v.name || "Fleet Vehicle",
+        role: "Hero Image",
+        mediaId: v.heroImage.mediaId,
+      });
+    }
+    v.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "Vehicle",
+          entityId: v._id,
+          entityTitle: v.name || "Fleet Vehicle",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
+      }
+    });
+  });
+
+  // Activities
+  activities.forEach((a) => {
+    if (a.heroImage?.mediaId && idStrings.has(a.heroImage.mediaId.toString())) {
+      usages.push({
+        entityType: "Activity",
+        entityId: a._id,
+        entityTitle: a.name || a.title || "Activity",
+        role: "Hero Image",
+        mediaId: a.heroImage.mediaId,
+      });
+    }
+    a.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "Activity",
+          entityId: a._id,
+          entityTitle: a.name || a.title || "Activity",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
+      }
+    });
+  });
+
+  // Attractions
+  attractions.forEach((a) => {
+    if (a.heroImage?.mediaId && idStrings.has(a.heroImage.mediaId.toString())) {
+      usages.push({
+        entityType: "Attraction",
+        entityId: a._id,
+        entityTitle: a.name || "Attraction",
+        role: "Hero Image",
+        mediaId: a.heroImage.mediaId,
+      });
+    }
+    a.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "Attraction",
+          entityId: a._id,
+          entityTitle: a.name || "Attraction",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
+      }
+    });
+  });
+
+  // Countries
+  countries.forEach((c) => {
+    if (c.heroImage && idStrings.has(c.heroImage.toString())) {
+      usages.push({
+        entityType: "Country",
+        entityId: c._id,
+        entityTitle: c.name || "Country",
+        role: "Hero Image",
+        mediaId: c.heroImage,
+      });
+    }
+    c.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "Country",
+          entityId: c._id,
+          entityTitle: c.name || "Country",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
+      }
+    });
+  });
+
+  // States
+  states.forEach((s) => {
+    if (s.heroImage?.mediaId && idStrings.has(s.heroImage.mediaId.toString())) {
+      usages.push({
+        entityType: "State",
+        entityId: s._id,
+        entityTitle: s.name || "State",
+        role: "Hero Image",
+        mediaId: s.heroImage.mediaId,
+      });
+    }
+    s.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "State",
+          entityId: s._id,
+          entityTitle: s.name || "State",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
+      }
+    });
+  });
+
+  // Cities
+  cities.forEach((c) => {
+    if (c.heroImage?.mediaId && idStrings.has(c.heroImage.mediaId.toString())) {
+      usages.push({
+        entityType: "City",
+        entityId: c._id,
+        entityTitle: c.name || "City",
+        role: "Hero Image",
+        mediaId: c.heroImage.mediaId,
+      });
+    }
+    c.gallery?.forEach((g) => {
+      if (g.mediaId && idStrings.has(g.mediaId.toString())) {
+        usages.push({
+          entityType: "City",
+          entityId: c._id,
+          entityTitle: c.name || "City",
+          role: "Gallery Image",
+          mediaId: g.mediaId,
+        });
+      }
+    });
+  });
+
+  // Hero Slides & Showcase
+  heroes.forEach((h) => {
+    h.slides?.forEach((s, idx) => {
+      if (s.image?.mediaId && idStrings.has(s.image.mediaId.toString())) {
+        usages.push({
+          entityType: "Hero Slide",
+          entityId: h._id,
+          entityTitle: s.tagline || `Slide #${idx + 1}`,
+          role: "Main Slide Image",
+          mediaId: s.image.mediaId,
+        });
+      }
+      if (s.thumbnail?.mediaId && idStrings.has(s.thumbnail.mediaId.toString())) {
+        usages.push({
+          entityType: "Hero Slide",
+          entityId: h._id,
+          entityTitle: s.tagline || `Slide #${idx + 1}`,
+          role: "Slide Thumbnail",
+          mediaId: s.thumbnail.mediaId,
+        });
+      }
+    });
+    h.showcase?.forEach((sc) => {
+      if (sc.image?.mediaId && idStrings.has(sc.image.mediaId.toString())) {
+        usages.push({
+          entityType: "Hero Showcase",
+          entityId: h._id,
+          entityTitle: sc.label || "Showcase Item",
+          role: "Showcase Image",
+          mediaId: sc.image.mediaId,
+        });
+      }
+    });
+    h.trustCard?.avatars?.forEach((av, idx) => {
+      if (av.mediaId && idStrings.has(av.mediaId.toString())) {
+        usages.push({
+          entityType: "Hero Trust Card",
+          entityId: h._id,
+          entityTitle: `Trust Avatar #${idx + 1}`,
+          role: "Avatar",
+          mediaId: av.mediaId,
+        });
+      }
+    });
+  });
+
+  // Reviews
+  reviews.forEach((r) => {
+    r.images?.forEach((img) => {
+      if (img.mediaId && idStrings.has(img.mediaId.toString())) {
+        usages.push({
+          entityType: "Review",
+          entityId: r._id,
+          entityTitle: r.userName || r.title || "Review",
+          role: "Review Photo",
+          mediaId: img.mediaId,
+        });
+      }
+    });
+  });
+
+  // AboutUs
+  if (aboutDoc) {
+    const checkRef = (ref, role) => {
+      if (ref && ref.mediaId && idStrings.has(ref.mediaId.toString())) {
+        usages.push({
+          entityType: "About Us",
+          entityId: aboutDoc._id,
+          entityTitle: "About Us Page",
+          role,
+          mediaId: ref.mediaId,
+        });
+      }
+    };
+    checkRef(aboutDoc.whoWeAre?.image, "Who We Are Image");
+    checkRef(aboutDoc.ourMission?.image, "Mission Image");
+    checkRef(aboutDoc.ourVision?.image, "Vision Image");
+    checkRef(aboutDoc.ourFleet?.mainImage, "Fleet Main Image");
+    aboutDoc.whyChooseUs?.sideImages?.forEach((img, idx) => checkRef(img, `Why Choose Us #${idx + 1}`));
+    aboutDoc.ourFleet?.sideImages?.forEach((img, idx) => checkRef(img, `Fleet Side Image #${idx + 1}`));
+    aboutDoc.team?.forEach((t) => checkRef(t.image, `Team Member (${t.name || "Member"})`));
+  }
+
+  return {
+    totalUsages: usages.length,
+    usages,
+  };
+};
+
+// ============================================================
+// CASCADE CLEANUP MEDIA REFERENCES FROM ALL ENTITIES
+// ============================================================
+
+export const cleanupMediaReferences = async (mediaIds) => {
+  const objectIds = mediaIds
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  if (!objectIds.length) return 0;
+
+  const results = await Promise.allSettled([
+    // Package
+    Package.updateMany(
+      { "heroImage.mediaId": { $in: objectIds } },
+      { $unset: { heroImage: 1 } }
+    ),
+    Package.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // Hotel
+    Hotel.updateMany(
+      { "heroImage.mediaId": { $in: objectIds } },
+      { $unset: { heroImage: 1 } }
+    ),
+    Hotel.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+    Hotel.updateMany(
+      { "roomTypes.images.mediaId": { $in: objectIds } },
+      { $pull: { "roomTypes.$[].images": { mediaId: { $in: objectIds } } } }
+    ),
+    Hotel.updateMany(
+      { ogImage: { $in: objectIds } },
+      { $set: { ogImage: null } }
+    ),
+
+    // Vehicle
+    Vehicle.updateMany(
+      { "heroImage.mediaId": { $in: objectIds } },
+      { $unset: { heroImage: 1 } }
+    ),
+    Vehicle.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // Activity
+    Activity.updateMany(
+      { "heroImage.mediaId": { $in: objectIds } },
+      { $unset: { heroImage: 1 } }
+    ),
+    Activity.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // Attraction
+    Attraction.updateMany(
+      { "heroImage.mediaId": { $in: objectIds } },
+      { $unset: { heroImage: 1 } }
+    ),
+    Attraction.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // Country
+    Country.updateMany(
+      { heroImage: { $in: objectIds } },
+      { $set: { heroImage: null } }
+    ),
+    Country.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // State
+    State.updateMany(
+      { "heroImage.mediaId": { $in: objectIds } },
+      { $unset: { heroImage: 1 } }
+    ),
+    State.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // City
+    City.updateMany(
+      { "heroImage.mediaId": { $in: objectIds } },
+      { $unset: { heroImage: 1 } }
+    ),
+    City.updateMany(
+      { "gallery.mediaId": { $in: objectIds } },
+      { $pull: { gallery: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // Hero
+    Hero.updateMany(
+      { "slides.image.mediaId": { $in: objectIds } },
+      { $pull: { slides: { "image.mediaId": { $in: objectIds } } } }
+    ),
+    Hero.updateMany(
+      { "slides.thumbnail.mediaId": { $in: objectIds } },
+      { $set: { "slides.$[elem].thumbnail": null } },
+      { arrayFilters: [{ "elem.thumbnail.mediaId": { $in: objectIds } }] }
+    ),
+    Hero.updateMany(
+      { "showcase.image.mediaId": { $in: objectIds } },
+      { $pull: { showcase: { "image.mediaId": { $in: objectIds } } } }
+    ),
+    Hero.updateMany(
+      { "trustCard.avatars.mediaId": { $in: objectIds } },
+      { $pull: { "trustCard.avatars": { mediaId: { $in: objectIds } } } }
+    ),
+
+    // Reviews
+    Review.updateMany(
+      { "images.mediaId": { $in: objectIds } },
+      { $pull: { images: { mediaId: { $in: objectIds } } } }
+    ),
+
+    // About Us
+    AboutUs.updateMany(
+      { "whoWeAre.image.mediaId": { $in: objectIds } },
+      { $set: { "whoWeAre.image": null } }
+    ),
+    AboutUs.updateMany(
+      { "ourMission.image.mediaId": { $in: objectIds } },
+      { $set: { "ourMission.image": null } }
+    ),
+    AboutUs.updateMany(
+      { "ourVision.image.mediaId": { $in: objectIds } },
+      { $set: { "ourVision.image": null } }
+    ),
+    AboutUs.updateMany(
+      { "ourFleet.mainImage.mediaId": { $in: objectIds } },
+      { $set: { "ourFleet.mainImage": null } }
+    ),
+    AboutUs.updateMany(
+      { "whyChooseUs.sideImages.mediaId": { $in: objectIds } },
+      { $pull: { "whyChooseUs.sideImages": { mediaId: { $in: objectIds } } } }
+    ),
+    AboutUs.updateMany(
+      { "ourFleet.sideImages.mediaId": { $in: objectIds } },
+      { $pull: { "ourFleet.sideImages": { mediaId: { $in: objectIds } } } }
+    ),
+  ]);
+
+  let totalModified = 0;
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value?.modifiedCount) {
+      totalModified += r.value.modifiedCount;
+    }
+  }
+
+  return totalModified;
+};
+
+// ============================================================
+// CHECK MEDIA USAGES (Pre-delete confirmation info)
+// ============================================================
+
+export const checkMediaUsage = async (req, res) => {
+  try {
+    const rawIds = req.body?.ids || req.body?.mediaIds || (req.query?.id ? [req.query.id] : []);
+    const ids = Array.isArray(rawIds) ? rawIds : [rawIds];
+    const validIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+    if (!validIds.length) {
+      return sendResponse(res, HTTP_STATUS_CODES.OK, "No valid media IDs to check", {
+        totalUsages: 0,
+        usages: [],
+      });
+    }
+
+    const usageData = await findMediaUsages(validIds);
+    return sendResponse(res, HTTP_STATUS_CODES.OK, "Media usages checked successfully", usageData);
   } catch (error) {
-
-    console.error(
-      "Delete Media Error:",
-      error
-    );
-
+    console.error("Check Media Usage Error:", error);
     return sendError(
       res,
       HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
       RESPONSE_MESSAGES.COMMON.INTERNAL_SERVER_ERROR
+    );
+  }
+};
+
+// ============================================================
+// DELETE SINGLE MEDIA (With Cascade Cleanup & Cloudinary Deletion)
+// ============================================================
+
+export const deleteMedia = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return sendError(res, HTTP_STATUS_CODES.BAD_REQUEST, "Invalid media ID");
+    }
+
+    const media = await Media.findOne({ _id: id });
+    if (!media) {
+      return sendError(res, HTTP_STATUS_CODES.NOT_FOUND, "Media not found");
+    }
+
+    // 1. Cascade cleanup references from all entities where this media is used
+    const cleanedReferences = await cleanupMediaReferences([id]);
+
+    // 2. Delete from Cloudinary CDN
+    if (media.publicId) {
+      try {
+        await deleteFromCloudinary(media.publicId, media.resourceType);
+      } catch (cErr) {
+        console.warn("Could not delete from Cloudinary:", cErr.message);
+      }
+    }
+
+    // 3. Mark media inactive in database
+    media.isActive = false;
+    media.deletedAt = new Date();
+    await media.save();
+
+    return sendResponse(
+      res,
+      HTTP_STATUS_CODES.OK,
+      "Media deleted and unlinked successfully",
+      {
+        id: media._id,
+        cleanedReferences,
+      }
+    );
+  } catch (error) {
+    console.error("Delete Media Error:", error);
+    return sendError(
+      res,
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      RESPONSE_MESSAGES.COMMON.INTERNAL_SERVER_ERROR
+    );
+  }
+};
+
+// ============================================================
+// BULK DELETE MEDIA (Multiple select)
+// ============================================================
+
+export const bulkDeleteMedia = async (req, res) => {
+  try {
+    const ids = req.body?.ids || req.body?.mediaIds || [];
+    if (!Array.isArray(ids) || !ids.length) {
+      return sendError(res, HTTP_STATUS_CODES.BAD_REQUEST, "No media IDs provided for bulk delete");
+    }
+
+    const validIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (!validIds.length) {
+      return sendError(res, HTTP_STATUS_CODES.BAD_REQUEST, "No valid media IDs provided");
+    }
+
+    const mediaList = await Media.find({ _id: { $in: validIds } });
+    if (!mediaList.length) {
+      return sendError(res, HTTP_STATUS_CODES.NOT_FOUND, "No matching media items found to delete");
+    }
+
+    // 1. Cascade cleanup from all entities
+    const cleanedReferences = await cleanupMediaReferences(validIds);
+
+    // 2. Delete from Cloudinary in parallel
+    await Promise.allSettled(
+      mediaList.map((m) =>
+        m.publicId ? deleteFromCloudinary(m.publicId, m.resourceType).catch(() => null) : Promise.resolve()
+      )
+    );
+
+    // 3. Mark all as deleted
+    await Media.updateMany(
+      { _id: { $in: validIds } },
+      { $set: { isActive: false, deletedAt: new Date() } }
+    );
+
+    return sendResponse(
+      res,
+      HTTP_STATUS_CODES.OK,
+      `${mediaList.length} media items deleted and unlinked successfully`,
+      {
+        deletedCount: mediaList.length,
+        cleanedReferences,
+      }
+    );
+  } catch (error) {
+    console.error("Bulk Delete Media Error:", error);
+    return sendError(
+      res,
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      RESPONSE_MESSAGES.COMMON.INTERNAL_SERVER_ERROR
+    );
+  }
+};
+
+// ============================================================
+// DOWNLOAD MEDIA AS ZIP (Selected assets or Full media library)
+// ============================================================
+
+export const downloadMediaZip = async (req, res) => {
+  try {
+    const rawIds = req.body?.ids || req.body?.mediaIds || (req.query?.ids ? req.query.ids.split(",") : []);
+    const isAll = req.body?.all === true || req.query?.all === "true";
+
+    let mediaItems = [];
+    if (isAll) {
+      mediaItems = await Media.find({ isActive: true }).sort({ createdAt: -1 }).lean();
+    } else {
+      const validIds = (Array.isArray(rawIds) ? rawIds : [rawIds]).filter((id) =>
+        mongoose.Types.ObjectId.isValid(id)
+      );
+      if (!validIds.length) {
+        return sendError(res, HTTP_STATUS_CODES.BAD_REQUEST, "Please specify media IDs or select all=true");
+      }
+      mediaItems = await Media.find({ _id: { $in: validIds }, isActive: true }).lean();
+    }
+
+    if (!mediaItems.length) {
+      return sendError(res, HTTP_STATUS_CODES.NOT_FOUND, "No media files found to download");
+    }
+
+    // Download media buffers
+    const files = await fetchMediaBuffers(mediaItems);
+    if (!files.length) {
+      return sendError(res, HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, "Could not retrieve media assets for download");
+    }
+
+    const zipBuffer = buildZipBuffer(files);
+    const filename = isAll
+      ? `full-media-library-${Date.now()}.zip`
+      : `selected-media-${files.length}-files-${Date.now()}.zip`;
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Length", zipBuffer.length);
+
+    return res.end(zipBuffer);
+  } catch (error) {
+    console.error("Download Media Zip Error:", error);
+    return sendError(
+      res,
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      "Failed to package media zip archive"
     );
   }
 };

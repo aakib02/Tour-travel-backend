@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 import State from "../../models/state/index.js";
 import Country from "../../models/country/index.js";
+import City from "../../models/city/index.js";
+import Package from "../../models/package/index.js";
+import Hotel from "../../models/hotel/index.js";
+import Attraction from "../../models/attraction/index.js";
+import Activity from "../../models/activity/index.js";
 
 import {
   HTTP_STATUS_CODES,
@@ -1170,7 +1175,6 @@ export const deleteState = async (
 
 
     if (!state) {
-
       return sendError(
         res,
         HTTP_STATUS_CODES.NOT_FOUND,
@@ -1178,6 +1182,29 @@ export const deleteState = async (
       );
     }
 
+    // Cascade: unlink deleted state from packages, cities, hotels, attractions, activities
+    await Promise.allSettled([
+      Package.updateMany(
+        { states: id },
+        { $pull: { states: id } }
+      ),
+      City.updateMany(
+        { stateId: id },
+        { $unset: { stateId: 1 } }
+      ),
+      Hotel.updateMany(
+        { stateId: id },
+        { $unset: { stateId: 1 } }
+      ),
+      Attraction.updateMany(
+        { stateId: id },
+        { $unset: { stateId: 1 } }
+      ),
+      Activity.updateMany(
+        { stateId: id },
+        { $unset: { stateId: 1 } }
+      ),
+    ]);
 
     return sendResponse(
       res,
